@@ -14,6 +14,11 @@ setup(
         ('share/' + package_name, glob('launch/*_launch.py')),
         ('share/' + package_name + '/worlds', glob('worlds/*.model')),
         ('share/' + package_name + '/models', glob('models/*.sdf')),
+        ('share/'+package_name+'/models/mobile_sensor/meshes/', glob('models/mobile_sensor/meshes/*')),
+              ('share/'+package_name+'/models/mobile_sensor/', glob('models/mobile_sensor/*.*')),
+   ('share/'+package_name+'/models/source_turtlebot/meshes/', glob('models/source_turtlebot/meshes/*')),
+              ('share/'+package_name+'/models/source_turtlebot/', glob('models/source_turtlebot/*.*')),
+              
     ],
     install_requires=['setuptools'],
     zip_safe=True,

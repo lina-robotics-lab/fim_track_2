@@ -43,7 +43,7 @@ def generate_launch_description():
     moving_source_path = os.path.join(get_package_share_directory('fim_track_2'), 'models', moving_source_file)
     mobile_sensor_path = os.path.join(get_package_share_directory('fim_track_2'), 'models', mobile_sensor_file)
 
-    launch_file_dir = os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'launch')
+    # launch_file_dir = os.path.join(get_package_share_directory('turtlebot3_gazebo'), 'launch')
 
     execs = [
             ExecuteProcess(

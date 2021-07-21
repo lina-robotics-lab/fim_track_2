@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.5">
-  <model name="mobile_sensor">
+  <model name="source_turtlebot">
     <pose>0.0 0.0 0.0 0.0 0.0 0.0</pose>
 
     <link name="base_footprint"/>
@@ -34,14 +34,14 @@
         <pose>-0.032 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://mobile_sensor/meshes/burger_base.dae</uri>
+            <uri>model://turtlebot3_burger/meshes/burger_base.dae</uri>
             <scale>0.001 0.001 0.001</scale>
           </mesh>
         </geometry>
          <material>
-            <ambient>0 0 0  1</ambient>
-            <diffuse>0 0 0 1</diffuse>
-            <specular>0 0 0 1</specular>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <specular>1 1 1 1</specular>
             <emissive>0 0 0 0</emissive>
         </material>
       </visual>
@@ -130,14 +130,14 @@
         <pose>-0.032 0 0.171 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://mobile_sensor/meshes/lds.dae</uri>
+            <uri>model://turtlebot3_burger/meshes/lds.dae</uri>
             <scale>0.001 0.001 0.001</scale>
           </mesh>
         </geometry>
          <material>
-            <ambient>0 0 0 1</ambient>
-            <diffuse>0 0 0 1</diffuse>
-            <specular>0 0 0 1</specular>
+            <ambient>1 0 0 1</ambient>
+            <diffuse>1 0 0 1</diffuse>
+            <specular>1 0 0 1</specular>
             <emissive>0 0 0 0</emissive>
         </material>
       </visual>
@@ -229,14 +229,14 @@
         <pose>0 0.08 0.023 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://mobile_sensor/meshes/left_tire.dae</uri>
+            <uri>model://turtlebot3_burger/meshes/left_tire.dae</uri>
             <scale>0.001 0.001 0.001</scale>
           </mesh>
         </geometry>
          <material>
-            <ambient>0 0 0 1</ambient>
-            <diffuse>0 0 0 1</diffuse>
-            <specular>0 0 0 1</specular>
+            <ambient>1 0 0 1</ambient>
+            <diffuse>1 0 0 1</diffuse>
+            <specular>1 0 0 1</specular>
             <emissive>0 0 0 0</emissive>
         </material>
       </visual>
@@ -293,14 +293,14 @@
         <pose>0.0 -0.08 0.023 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://mobile_sensor/meshes/right_tire.dae</uri>
+            <uri>model://turtlebot3_burger/meshes/right_tire.dae</uri>
             <scale>0.001 0.001 0.001</scale>
           </mesh>
         </geometry>
          <material>
-            <ambient>0 0 0 1</ambient>
-            <diffuse>0 0 0 1</diffuse>
-            <specular>0 0 0 1</specular>
+            <ambient>1 0 0 1</ambient>
+            <diffuse>1 0 0 1</diffuse>
+            <specular>1 0 0 1</specular>
             <emissive>0 0 0 0</emissive>
         </material>
       </visual>
