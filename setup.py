@@ -33,7 +33,8 @@ setup(
         'listener = fim_track_2.listener:main',
         'manual_teleop_key = fim_track_2.manual_teleop_key:main',
         'spawn_entity = fim_track_2.spawn_entity:main',
-        'single_robot_controller = fim_track_2.single_robot_controller:main'
+        'single_robot_controller = fim_track_2.single_robot_controller:main',
+        'distributed_estimation = fim_track_2.distributed_estimation:main'
         ],
     },
 )
