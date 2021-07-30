@@ -41,6 +41,17 @@ class robot_listener:
 		controller_node.create_subscription(Float32MultiArray,self.light_topic, self.light_callback_,qos)
 		controller_node.create_subscription(Float32MultiArray,self.coefs_topic, self.sensor_coef_callback_,qos)
 
+	def get_latest_loc(self):
+		if len(self.robot_loc_stack)>0:
+			return self.robot_loc_stack[-1]
+		else:
+			return None
+
+	def get_latest_yaw(self):
+		if len(self.robot_loc_stack)>0:
+			return self.robot_yaw_stack[-1]
+		else:
+			return None
 
 	def sensor_coef_callback_(self,data):
 		coefs=data.data

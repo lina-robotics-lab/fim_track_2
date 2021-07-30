@@ -4,7 +4,6 @@ import sys
 import termios
 import tty
 import threading
-import re
 
 import numpy as np
 
@@ -21,18 +20,7 @@ sys.path.insert(0, os.path.abspath(tools_root))
 
 from ros2_utils.robot_listener import robot_listener
 from ros2_utils.pose import prompt_pose_type_string
-
-
-def get_sensor_names(curr_node):
-	sensor_names = set()
-	for (topic,_type) in curr_node.get_topic_names_and_types():
-		topic_split = re.split('/',topic)
-		if ('pose' in topic_split) or ('odom' in topic_split):
-			# pose_type_string = topic[1]
-			name = re.search('/mobile_sensor.*/',topic)
-			if not name is None:
-				sensor_names.add(name.group()[1:-1])
-	return list(sensor_names)
+from ros2_utils.misc import get_sensor_names
 
 def main():
 
