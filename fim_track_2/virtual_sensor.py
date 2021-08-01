@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(tools_root))
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String,Float32
+from std_msgs.msg import String,Float32MultiArray
 from rclpy.qos import QoSProfile
 
 import numpy as np
@@ -97,7 +97,7 @@ class virtual_sensor_node(Node):
 	def publisher_init(self,robot_namespaces):
 		qos = QoSProfile(depth=10)
 
-		self.pubs = {namespace:self.create_publisher(Float32,'/{}/sensor_readings'.format(namespace),qos) for namespace in robot_namespaces}
+		self.pubs = {namespace:self.create_publisher(Float32MultiArray,'/{}/sensor_readings'.format(namespace),qos) for namespace in robot_namespaces}
 	
 
 
@@ -120,9 +120,9 @@ class virtual_sensor_node(Node):
 			ls = self.sensor_listeners[sensor_name]
 			sen = ls.get_latest_loc()
 			if not sen is None:
-				msg = Float32()
+				msg = Float32MultiArray()
 
-				msg.data = self.vs.measurement(src,sen)[0]
+				msg.data = list(self.vs.measurement(src,sen))
 				print(sensor_name,msg)
 				self.pubs[sensor_name].publish(msg)
 

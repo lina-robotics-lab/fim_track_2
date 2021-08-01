@@ -53,6 +53,13 @@ class robot_listener:
 		else:
 			return None
 
+	def get_latest_readings(self):
+		if len(self.light_reading_stack)>0:
+			return self.light_reading_stack[-1]
+		else:
+			return None
+
+
 	def sensor_coef_callback_(self,data):
 		coefs=data.data
 		self.C1,self.C0,self.k,self.b=coefs
@@ -64,4 +71,5 @@ class robot_listener:
 
 	def light_callback_(self,data):
 		self.light_readings=data.data
+		self.light_reading_stack.append(self.light_readings)
 

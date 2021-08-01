@@ -63,8 +63,9 @@ def main():
 			for rl in rls:
 				if len(rl.robot_loc_stack)>0:
 					#
-					loc=rl.robot_loc_stack[-1]
-					print(rl.robot_name,loc)
+					loc = rl.get_latest_loc()
+					readings = rl.get_latest_readings()
+					print(rl.robot_name,loc,readings)
 				
 			rate.sleep()
 
