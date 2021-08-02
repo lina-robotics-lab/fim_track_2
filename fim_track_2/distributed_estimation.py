@@ -54,6 +54,8 @@ class distributed_estimation_node(Node):
 		self.nb_zhats = {namespace:[] for namespace in neighborhood_namespaces}
 
 		self.z_hat_pub = self.create_publisher(Float32MultiArray,'/{}/z_hat'.format(robot_namespace),qos)
+		self.q_hat_pub = self.create_publisher(Float32MultiArray,'/{}/q_hat'.format(robot_namespace),qos)
+
 
 		sleep_time = 0.5
 		self.timer = self.create_timer(sleep_time,self.timer_callback)
@@ -118,9 +120,16 @@ class distributed_estimation_node(Node):
 
 		print(self.robot_namespace,self.estimator.get_z(),self.consensus_weights())
 
+		# Publish z_hat and q_hat
 		z_out = Float32MultiArray()
 		z_out.data = list(zh)
 		self.z_hat_pub.publish(z_out)
+
+		qh = self.estimator.get_q()
+		q_out = Float32MultiArray()
+		q_out.data = list(qh)
+		self.q_hat_pub.publish(q_out)
+
 
 def main(args=sys.argv):
 	rclpy.init(args=args)

@@ -85,3 +85,14 @@ def analytic_dLdp(q,ps,C1s,C0s,ks,bs,FIM=None):
     c2 = -2*(1/rs)*(d**2)*np.einsum('ij,ij->j',Q.dot(r_hat.T),Q.dot(t_hat.T))
 
     return (c1*r_hat.T+c2*t_hat.T).T
+
+def local_dLdp(q,p,p_neighbor,C1s,C0s,ks,bs):
+    
+    local_FIM = analytic_FIM(q,p_neighbor,C1s,C0s,ks,bs)
+
+    return analytic_dLdp(q,p,C1s,C0s,ks,bs,FIM = local_FIM)
+
+# Next:
+
+# def coordinated_dLdp(q,p,p_neighbor,C1s,C0s,ks,bs,consensus_weights):
+#     pass

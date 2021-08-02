@@ -35,7 +35,8 @@ setup(
         'spawn_entity = fim_track_2.spawn_entity:main',
         'single_robot_controller = fim_track_2.single_robot_controller:main',
         'distributed_estimation = fim_track_2.distributed_estimation:main',
-        'virtual_sensor = fim_track_2.virtual_sensor:main'
+        'virtual_sensor = fim_track_2.virtual_sensor:main',
+        'waypoint_planning = fim_track_2.waypoint_planning:main'
         ],
     },
 )
