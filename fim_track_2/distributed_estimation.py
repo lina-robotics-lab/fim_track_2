@@ -30,7 +30,7 @@ from util_func import joint_meas_func, analytic_dhdz
 class distributed_estimation_node(Node):
 
 	def __init__(self,robot_namespace,pose_type_string,estimator,neighborhood_namespaces=None):
-		super().__init__('{}_estimation'.format(robot_namespace))
+		super().__init__(node_name = 'estimation'.format(robot_namespace), namespace = robot_namespace)
 
 		self.pose_type_string = pose_type_string
 		self.robot_namespace = robot_namespace
@@ -43,8 +43,25 @@ class distributed_estimation_node(Node):
 		self.sensor_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string)\
 								 for namespace in neighborhood_namespaces}
 
+
+		qos = QoSProfile(depth=10)
+
+		self.z_hat_listeners = \
+		{namespace:
+		self.create_subscription(
+			Float32MultiArray,
+			'/{}/z_hat'.format(namespace),
+			partial(self.z_hat_callback,namespace = namespace),
+			qos)
+			for namespace in neighborhood_namespaces}
+
+		self.nb_zhats = {namespace:[] for namespace in neighborhood_namespaces}
+
+		self.z_hat_pub = self.create_publisher(Float32MultiArray,'/{}/z_hat'.format(robot_namespace),qos)
+
 		sleep_time = 0.5
 		self.timer = self.create_timer(sleep_time,self.timer_callback)
+
 
 
 		self.estimator = estimator
@@ -70,12 +87,23 @@ class distributed_estimation_node(Node):
 
 	def neighbor_zhats(self):
 
-		# Hard-coded value used in development.
-		return np.zeros((len(self.sensor_listeners),4))
+		return self.nb_zhats
+
+	def z_hat_callback(self,data,namespace):
+		self.nb_zhats[namespace] = np.array(data.data).flatten()
+
+	def consensus_weights(self):
+		# Temporary hard-coded equally consensus weights.
+		N_neighbor = len(self.sensor_listeners)
+		return np.ones(N_neighbor)/N_neighbor
 
 	def timer_callback(self):
 		p = []
 		y = []
+		zhat = []
+
+		zh = self.estimator.get_z()
+
 		for name,sl in self.sensor_listeners.items():
 		
 			if len(sl.robot_loc_stack)>0 and \
@@ -84,23 +112,36 @@ class distributed_estimation_node(Node):
 					p.append(sl.get_latest_loc())
 					y.append(sl.get_latest_readings())
 
-		self.estimator.update(self.neighbor_h(),self.neighbor_dhdz(),y,p,self.neighbor_zhats()\
-								,z_neighbor_bar=None,consensus_weights=None)
+					if len(self.nb_zhats[name])>0:
+						zhat.append(self.nb_zhats[name])
+					else:
+						zhat.append(zh)
 
-		print(self.robot_namespace,self.estimator.get_estimation())
+		self.estimator.update(self.neighbor_h(),self.neighbor_dhdz(),y,p,zhat\
+								,z_neighbor_bar=None,consensus_weights=self.consensus_weights())
 
-def main():
+		print(self.robot_namespace,self.estimator.get_z(),self.consensus_weights())
 
-	arguments = len(sys.argv) - 1
+		z_out = Float32MultiArray()
+		z_out.data = list(zh)
+		self.z_hat_pub.publish(z_out)
+
+def main(args=sys.argv):
+	rclpy.init(args=args)
+	args_without_ros = rclpy.utilities.remove_ros_args(args)
+
+	print(args_without_ros)
+	arguments = len(args_without_ros) - 1
 	position = 1
+
 
 	# Get the robot name passed in by the user
 	robot_namespace=''
 	if arguments >= position:
-		robot_namespace = sys.argv[position]
+		robot_namespace = args_without_ros[position]
 	
 	if arguments >= position+1:
-		pose_type_string = sys.argv[position+1]
+		pose_type_string = args_without_ros[position+1]
 	else:
 		pose_type_string = prompt_pose_type_string()
 		
@@ -112,8 +153,6 @@ def main():
 	qhat_0 = (np.random.rand(2))*3
 	estimator = ConsensusEKF(qhat_0)
 
-	rclpy.init()
-	
 	de = distributed_estimation_node(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
 	
 	try:

@@ -50,7 +50,10 @@ class ConsensusEKF:
         
         return A.dot(z)
 
-    def get_estimation(self):
+    def get_z(self):
+        return self.z
+        
+    def get_q(self):
         return self.z[:len(self.q0)]
 
     def update(self,h,dhdz,y,p,z_neighbor,z_neighbor_bar=None,consensus_weights=None):
@@ -110,7 +113,7 @@ class ConsensusEKF:
         if not np.any(y == np.inf):
             self.update(h,dhdz,y,p,z_neighbor,z_neighbor_bar,consensus_weights)
 
-        return self.get_estimation()
+        return self.get_q()
 
     
         
