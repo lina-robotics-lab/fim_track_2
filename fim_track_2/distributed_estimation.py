@@ -1,9 +1,5 @@
 import os
-import select
 import sys
-import termios
-import tty
-import threading
 
 import numpy as np
 
@@ -30,7 +26,7 @@ from util_func import joint_meas_func, analytic_dhdz
 class distributed_estimation_node(Node):
 
 	def __init__(self,robot_namespace,pose_type_string,estimator,neighborhood_namespaces=None):
-		super().__init__(node_name = 'estimation'.format(robot_namespace), namespace = robot_namespace)
+		super().__init__(node_name = 'estimation', namespace = robot_namespace)
 
 		self.pose_type_string = pose_type_string
 		self.robot_namespace = robot_namespace
@@ -95,7 +91,7 @@ class distributed_estimation_node(Node):
 	def consensus_weights(self):
 		# Temporary hard-coded equally consensus weights.
 		N_neighbor = len(self.sensor_listeners)
-		return np.ones(N_neighbor)/N_neighbor
+		return 0.5 * np.ones(N_neighbor)/N_neighbor
 
 	def timer_callback(self):
 		p = []
@@ -147,10 +143,11 @@ def main(args=sys.argv):
 		
 	
 
+	neighborhood = set(['mobile_sensor_{}'.format(n) for n in range(4)])
 
-	neighborhood = set(['mobile_sensor_{}'.format(n) for n in [1,3]]+[robot_namespace])
+	# neighborhood = set(['mobile_sensor_{}'.format(n) for n in [1,3]]+[robot_namespace])
 
-	qhat_0 = (np.random.rand(2))*3
+	qhat_0 = (np.random.rand(2))*2
 	estimator = ConsensusEKF(qhat_0)
 
 	de = distributed_estimation_node(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
