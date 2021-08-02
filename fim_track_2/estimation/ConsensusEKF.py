@@ -20,15 +20,15 @@ class ConsensusEKF:
         R_mag,Q_mag,C_gain should be scalars.
         '''
         
-        self.q = q_0 # Mean
-        self.qdot = np.zeros(self.q.shape) # Velocity Mean
+        self.q0 = q_0 # Mean
+        self.q0_dot = np.zeros(self.q0.shape) # Velocity Mean
         
-        self.z = np.hstack([self.q,self.qdot]) # The source predicted state, public variable.
-        self._zbar = np.hstack([self.q,self.qdot]) # The source corrected state, private variable.
+        self.z = np.hstack([self.q0,self.q0_dot]) # The source predicted state, public variable.
+        self._zbar = np.hstack([self.q0,self.q0_dot]) # The source corrected state, private variable.
         
         
         
-        self.qdim = len(self.q)
+        self.qdim = len(self.q0)
         
         self.P = np.eye(len(self.z)) # Covariance of [q,qdot]. Initialized to be the identity matrix
         
@@ -49,6 +49,10 @@ class ConsensusEKF:
         A = self.dfdz(z)
         
         return A.dot(z)
+
+    def get_estimation(self):
+        return self.z[:len(self.q0)]
+
     def update(self,h,dhdz,y,p,z_neighbor,z_neighbor_bar=None,consensus_weights=None):
         """
         h is a function handle h(z,p), the measurement function that maps z,p to y.
@@ -60,6 +64,10 @@ class ConsensusEKF:
         
         z_neighbor is the list of z estimations collected from the neighbors(including self).
         """
+        y = np.array(y).flatten()
+        p = np.array(p).reshape(-1,2)
+        z_neighbor = np.array(z_neighbor).reshape(-1,4)
+
         A = self.dfdz(self._zbar)
         C = dhdz(self.z,p)
         R = self.R_mag*np.eye(len(y))
@@ -88,11 +96,12 @@ class ConsensusEKF:
         
 #         The Stable version of consensus scheme
             
-            self.z = self.f(self.z)+K.dot(y-h(self.z,p)) +\
-                                self.C_gain*np.ones((1,N)).dot(z_neighbor-self.z).flatten() # The consensus term.
+            self.z = self.f(self.z) + \
+                     K.dot(y-h(self.z,p)) +\
+                self.C_gain*np.ones((1,N)).dot(z_neighbor-self.z).flatten() # The consensus term.
         else:
             # print('Two pass parallel')
-            self.z= consensus_weights.dot(z_neighbor)/np.sum(consensus_weights) # The consensus term.
+            self.z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights) # The consensus term.
             self.z = self.f(self.z)+K.dot(y-h(self.z,p))    
                               
         self.P = A.dot(self.P).dot(A.T)+ Q- K.dot(C.dot(self.P).dot(C.T)+R).dot(K.T)
@@ -101,7 +110,7 @@ class ConsensusEKF:
         if not np.any(y == np.inf):
             self.update(h,dhdz,y,p,z_neighbor,z_neighbor_bar,consensus_weights)
 
-        return self.z[:len(self.q)]
+        return self.get_estimation()
 
     
         
