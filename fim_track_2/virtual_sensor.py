@@ -59,7 +59,7 @@ class virtual_sensor(object):
 		return y
 
 class virtual_sensor_node(Node):
-	def __init__(self,pose_type_string):
+	def __init__(self,pose_type_string,sensor_namespaces=None,source_namespaces=None):
 		super().__init__('virtual_sensor')
 
 		self.pose_type_string = pose_type_string
@@ -84,11 +84,14 @@ class virtual_sensor_node(Node):
 		self.pubs = {}
 		self.subs = {}
 
-		sensor_namespaces = get_sensor_names(self)
-		source_namespaces = get_source_names(self)
+		sensor_namespaces = get_sensor_names(self) if sensor_namespaces is None else sensor_namespaces
+		source_namespaces = get_source_names(self) if source_namespaces is None else source_namespaces
 
 		self.subscriber_init(sensor_namespaces,source_namespaces)
 		self.publisher_init(sensor_namespaces)
+
+		self.get_logger().info('Sensor Init Done '+pose_type_string)
+
 
 	def subscriber_init(self,sensor_namespaces,source_namespaces):
 		self.sensor_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string) for namespace in sensor_namespaces}
@@ -107,11 +110,11 @@ class virtual_sensor_node(Node):
 		src = []
 		for source_name,sls in self.source_listeners.items():
 			if not sls.get_latest_loc() is None:
-				src.append(sls.get_latest_loc)
+				src.append(sls.get_latest_loc())
 
 		src = np.array(src).reshape(-1,2)
 
-
+		self.get_logger().info('Timer Callback, ')
 		for sensor_name, pub in self.pubs.items():
 			
 			# src = self.source_loc
@@ -123,22 +126,33 @@ class virtual_sensor_node(Node):
 				msg = Float32MultiArray()
 
 				msg.data = list(self.vs.measurement(src,sen))
-				print(sensor_name,msg)
 				self.pubs[sensor_name].publish(msg)
 
-def main():
-	arguments = len(sys.argv) - 1
+def main(args = sys.argv):
+
+	rclpy.init(args=args)
+	args_without_ros = rclpy.utilities.remove_ros_args(args)
+
+	arguments = len(args_without_ros) - 1
 	position = 1
+
 	# Get the pose type passed in by the user
 	if arguments>=position:
-		pose_type_string = sys.argv[position+1]
+		pose_type_string = sys.argv[position]
 	else:
 		pose_type_string = prompt_pose_type_string()
-	rclpy.init()
-	tk = virtual_sensor_node(pose_type_string)
+
+	sensors = None
+	source = None
+
+	if arguments>=position+1:
+		sensors = sys.argv[position+1].split(',')
+	if arguments>=position+2:
+		source = sys.argv[position+2].split(',')
 	
-	
-	
+	tk = virtual_sensor_node(pose_type_string,sensors,source)	
+
+	tk.get_logger().info(str(args_without_ros))
 	try:
 		print('Virtual Sensor Up')
 		rclpy.spin(tk)
@@ -146,7 +160,7 @@ def main():
 		print("Keyboard Interrupt. Shutting Down...")
 	finally:
 		tk.destroy_node()
-		print('Virtual Sensor Down')
+		tk.get_logger().info('Virtual Sensor Down')
 		rclpy.shutdown()
 
 if __name__ == '__main__':

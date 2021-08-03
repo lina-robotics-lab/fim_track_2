@@ -22,15 +22,17 @@ def generate_launch_description():
 
     source_names = ["source_{}".format(i) for i in range(1)]
     # Initial position and orientation of moving sources
-    t_x =[6]
-    t_y = [6]
+    # t_x =[6]
+    # t_y = [6]
+    t_x =[0]
+    t_y = [5]
     t_Yaw = [0]
 
     sensor_names = ['mobile_sensor_{}'.format(i) for i in range(4)]
 
     # Initial position and orientation of sensors
-    x = [1,-1,1,-1.,-2]
-    y=[1,-1.,-1,1,-1]
+    x = [1,-1,0.5,-2.]
+    y=[1,1.,-1,-1]
     Yaw = [0,0,0,0]
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='True')
@@ -62,5 +64,11 @@ def generate_launch_description():
     # Append the sensor spawning commands to the execution list.
     for i,name in enumerate(sensor_names):
         execs.append(spawn_object_exec(name,mobile_sensor_path,x[i],y[i],Yaw[i]))
+    
+    # execs = []
+    execs.append(Node(package = 'fim_track_2',
+                executable = 'virtual_sensor',
+                arguments = ['Odom',','.join(sensor_names),','.join(source_names)]
+                ))
 
     return LaunchDescription(execs)

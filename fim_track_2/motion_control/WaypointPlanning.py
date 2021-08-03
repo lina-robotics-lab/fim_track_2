@@ -10,18 +10,29 @@ from WaypointTracking import BURGER_MAX_LIN_VEL
 
 
 
-def FIM_waypoints(qhat, p_0, dLdp, planning_horizon = 10, max_linear_speed = BURGER_MAX_LIN_VEL):
+def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size = 1.5*BURGER_MAX_LIN_VEL):
     
-    p = p_0
+    def joint_waypoints(ps_0):
+        
+        ps = ps_0
 
-    wp = [np.array(p)]
+        wp = [np.array(ps)]
+        # wp = []
 
-    # Gradient update
-    for i in range(planning_horizon):
-        dp = dLdp(qhat,p)
+        # Gradient update
+        for i in range(planning_horizon):
+            dp = dLdp(qhat,ps)
 
-        p -= max_linear_speed*dp/np.linalg.norm(dp)
+            ps -= step_size*dp/np.linalg.norm(dp,axis = 1).reshape(-1,1)
+            # ps += step_size*dp/np.linalg.norm(dp,axis = 1).reshape(-1,1)
 
-        wp.append(np.array(p))
+            wp.append(np.array(ps))
 
-    return wp
+        return np.array(wp)
+
+
+    ps_0 = np.vstack([my_loc,neighbor_loc]) # Put the loc of myself at the first row
+
+    wp = joint_waypoints(ps_0) # wp.shape = (planning_horizon+1,N_sensors,space_dim)
+
+    return wp[:,0,:] # Return only the waypoints of myself.

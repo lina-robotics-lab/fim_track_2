@@ -21,8 +21,9 @@ from ros2_utils.robot_listener import robot_listener
 from ros2_utils.pose import prompt_pose_type_string,turtlebot_twist, stop_twist
 
 from motion_control.WaypointTracking import LQR_for_motion_mimicry
-from motion_control.WaypointPlanning import FIM_waypoints
-from util_func import local_dLdp
+# from util_func import local_dLdp
+
+from collections import deque
 
 def get_control_action(waypoints,curr_x):
 	if len(waypoints)==0:
@@ -35,9 +36,10 @@ def get_control_action(waypoints,curr_x):
 
 	uhat,_,_ = LQR_for_motion_mimicry(waypoints,planning_dt,curr_x,Q=Q,R=R)
 
-	[v,omega] = uhat[0]
-	vel_msg=turtlebot_twist(v,omega)
-	return vel_msg
+	return uhat
+	# [v,omega] = uhat[0]
+	# vel_msg=turtlebot_twist(v,omega)
+	# return vel_msg
 
 
 class motion_control_node(Node):
@@ -61,24 +63,28 @@ class motion_control_node(Node):
 		# self.waypoints = []
 		
 		# Temporary hard-coded waypoints used in devel.	
-		self.waypoints = []
+		self.control_actions = deque([])
 
 	def waypoint_callback(self,data):
-		self.waypoints = np.array(data.data).reshape(-1,2)
+		waypoints = np.array(data.data).reshape(-1,2)
 
-	def timer_callback(self):
-		if len(self.rl.robot_loc_stack)>0 and len(self.waypoints)>0:
-
-			# Publish control actions.
+		if len(self.rl.robot_loc_stack)>0:
 			loc=self.rl.robot_loc_stack[-1]
 			yaw=self.rl.robot_yaw_stack[-1]
-	
+
 			curr_x = np.array([loc[0],loc[1],yaw])		
 
-			# self.waypoints = FIM_waypoints(self.q_hat,loc,self.dLdp)	
-			
-			self.vel_pub.publish(get_control_action(self.waypoints,curr_x))
+			self.control_actions = deque(get_control_action(waypoints,curr_x))
 
+	def timer_callback(self):
+		if len(self.control_actions)>0:
+			# Pop and publish the left-most control action.
+			[v,omega] = self.control_actions.popleft()
+
+			print(v,omega)
+			
+			vel_msg = turtlebot_twist(v,omega)
+			self.vel_pub.publish(vel_msg)
 	
 			print("publishing")
 

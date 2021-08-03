@@ -1,7 +1,7 @@
 import numpy as np
 
-BURGER_MAX_LIN_VEL = 0.22
-BURGER_MAX_ANG_VEL = 2.84
+BURGER_MAX_LIN_VEL = 0.22 
+BURGER_MAX_ANG_VEL = 2.84 * 0.8
 
 def unscaled_spline_motion(waypoints,poly_order, space_dim,n_output):
     
@@ -215,5 +215,4 @@ def LQR_for_motion_mimicry(waypoints,planning_dt,x_0,Q,R):
         
         dx = As[i].dot(dx)+Bs[i].dot(du)
     
-    print(uhat[0],ref_u[0])
     return uhat,xhat,p
