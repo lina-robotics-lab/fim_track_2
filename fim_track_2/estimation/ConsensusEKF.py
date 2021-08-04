@@ -104,6 +104,7 @@ class ConsensusEKF:
                 self.C_gain*np.ones((1,N)).dot(z_neighbor-self.z).flatten() # The consensus term.
         else:
             # print('Two pass parallel')
+            # print(consensus_weights,z_neighbor)
             self.z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights) # The consensus term.
             self.z = self.f(self.z)+K.dot(y-h(self.z,p))    
                               

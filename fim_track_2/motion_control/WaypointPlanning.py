@@ -8,8 +8,6 @@ sys.path.insert(0, os.path.abspath(tools_root))
 
 from WaypointTracking import BURGER_MAX_LIN_VEL
 
-
-
 def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size = 1.5*BURGER_MAX_LIN_VEL):
     
     def joint_waypoints(ps_0):

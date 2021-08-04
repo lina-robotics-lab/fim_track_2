@@ -37,6 +37,8 @@ class waypoint_planning_node(Node):
 
 		self.robot_namespace = robot_namespace
 
+		assert(robot_namespace in neighborhood_namespaces)
+
 
 		qos = QoSProfile(depth=10)
 
@@ -44,16 +46,15 @@ class waypoint_planning_node(Node):
 	
 		self.q_hat_sub = self.create_subscription(Float32MultiArray,'/{}/q_hat'.format(robot_namespace),self.q_hat_callback , qos)
 
-		self.rl = robot_listener(self,robot_namespace,pose_type_string)
+
 
 		if neighborhood_namespaces is None:
 			self.neighborhood_namespaces = get_sensor_names(self)
 		else:
 			self.neighborhood_namespaces = neighborhood_namespaces
 
-		# Neighbors do not include the current robot itself.
-		self.neighbor_listeners = {namespace:robot_listener(self,namespace,pose_type_string)\
-								 for namespace in neighborhood_namespaces if not namespace==robot_namespace}
+		self.robot_listeners = {namespace:robot_listener(self,namespace,pose_type_string)\
+								 for namespace in neighborhood_namespaces}
 
 		self.sleep_time = 1
 		self.timer = self.create_timer(self.sleep_time,self.timer_callback)
@@ -74,12 +75,13 @@ class waypoint_planning_node(Node):
 		self.dLdp = partial(analytic_dLdp, C1s = C1, C0s = C0, ks=k, bs=b, FIM=None)
 
 	def get_my_loc(self):
-		return self.rl.get_latest_loc()
 
-	def get_neighbor_locs(self):
+		return self.robot_listeners[self.robot_namespace].get_latest_loc()
+
+	def get_strict_neighbor_locs(self):
 		# Get neighbors' locations, not including myself.
 
-		ps = [nl.get_latest_loc() for nl in self.neighbor_listeners.values()]
+		ps = [nl.get_latest_loc() for nl in self.robot_listeners.values() if not nl.robot_name==self.robot_namespace]
 
 		return np.array([p for p in ps if not p is None]).reshape(-1,2)
 	
@@ -87,7 +89,7 @@ class waypoint_planning_node(Node):
 		# Get robot locations in the neighborhood, including myself placed in the first row.
 
 		loc = self.get_my_loc()
-		nb_loc = self.get_neighbor_locs()
+		nb_loc = self.get_strict_neighbor_locs()
 
 		if (not loc is None):
 			return np.vstack([loc,nb_loc])
@@ -98,11 +100,12 @@ class waypoint_planning_node(Node):
 		self.q_hat = np.array(data.data).ravel()
 	
 	def timer_callback(self):
-		if len(self.rl.robot_loc_stack)>0 and len(self.q_hat)>0:
+		
+		my_loc=self.get_my_loc()
+		
+		if (not my_loc is None) and len(self.q_hat)>0:
 			# Publish control actions.
-			my_loc=self.rl.get_latest_loc()
-			neighbor_loc = self.get_neighbor_locs()
-
+			neighbor_loc = self.get_strict_neighbor_locs()
 
 			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,self.dLdp, step_size = self.sleep_time * BURGER_MAX_LIN_VEL)	
 			print(self.q_hat,self.waypoints.shape)
@@ -137,8 +140,11 @@ def main(args = sys.argv):
 	else:
 		pose_type_string = prompt_pose_type_string()
 
-	neighborhood = set(['mobile_sensor_{}'.format(n) for n in range(4)])
-
+	if arguments >= position+2:
+		neighborhood = set(args_without_ros[position+2].split(','))
+	else:
+		neighborhood = set(['mobile_sensor_{}'.format(n) for n in range(4)])
+	
 	WP = waypoint_planning_node(robot_namespace,pose_type_string,neighborhood_namespaces = neighborhood)
 
 	try:

@@ -90,9 +90,10 @@ class distributed_estimation_node(Node):
 	def z_hat_callback(self,data,namespace):
 		self.nb_zhats[namespace] = np.array(data.data).flatten()
 
-	def consensus_weights(self):
+	def consensus_weights(self,y,p):
+		assert(len(y)==len(p))
 		# Temporary hard-coded equally consensus weights.
-		N_neighbor = len(self.sensor_listeners)
+		N_neighbor = len(y)
 		return 0.5 * np.ones(N_neighbor)/N_neighbor
 
 	def timer_callback(self):
@@ -115,10 +116,11 @@ class distributed_estimation_node(Node):
 					else:
 						zhat.append(zh)
 
+		zhat = np.array(zhat)
+		
 		self.estimator.update(self.neighbor_h(),self.neighbor_dhdz(),y,p,zhat\
-								,z_neighbor_bar=None,consensus_weights=self.consensus_weights())
+								,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
 
-		print(self.robot_namespace,self.estimator.get_z(),self.consensus_weights())
 
 		# Publish z_hat and q_hat
 		z_out = Float32MultiArray()
@@ -149,18 +151,18 @@ def main(args=sys.argv):
 		pose_type_string = args_without_ros[position+1]
 	else:
 		pose_type_string = prompt_pose_type_string()
-		
 	
-
-	neighborhood = set(['mobile_sensor_{}'.format(n) for n in range(4)])
-
-	# neighborhood = set(['mobile_sensor_{}'.format(n) for n in [1,3]]+[robot_namespace])
-
+	if arguments >= position+2:
+		neighborhood = set(args_without_ros[position+2].split(','))
+	else:
+		neighborhood = set(['mobile_sensor_{}'.format(n) for n in range(4)])
+	
 	qhat_0 = (np.random.rand(2))*2
 	estimator = ConsensusEKF(qhat_0)
 
 	de = distributed_estimation_node(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
 	
+	de.get_logger().info(' '.join(neighborhood))
 	try:
 		print('Estimation Node Up')
 		rclpy.spin(de)
