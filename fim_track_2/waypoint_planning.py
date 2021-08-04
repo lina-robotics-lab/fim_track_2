@@ -32,7 +32,7 @@ from util_func import analytic_dLdp
 class waypoint_planning_node(Node):
 
 
-	def __init__(self,robot_namespace,pose_type_string,neighborhood_namespaces=None):
+	def __init__(self,robot_namespace, pose_type_string, neighborhood_namespaces=None):
 		super().__init__(node_name = 'waypoint_planning',namespace = robot_namespace)
 
 		self.robot_namespace = robot_namespace

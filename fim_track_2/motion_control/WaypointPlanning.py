@@ -22,7 +22,6 @@ def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size
             dp = dLdp(qhat,ps)
 
             ps -= step_size*dp/np.linalg.norm(dp,axis = 1).reshape(-1,1)
-            # ps += step_size*dp/np.linalg.norm(dp,axis = 1).reshape(-1,1)
 
             wp.append(np.array(ps))
 

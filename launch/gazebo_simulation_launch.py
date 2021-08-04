@@ -24,8 +24,8 @@ def generate_launch_description():
     # Initial position and orientation of moving sources
     # t_x =[6]
     # t_y = [6]
-    t_x =[0]
-    t_y = [5]
+    t_x =[3]
+    t_y = [0]
     t_Yaw = [0]
 
     sensor_names = ['mobile_sensor_{}'.format(i) for i in range(4)]

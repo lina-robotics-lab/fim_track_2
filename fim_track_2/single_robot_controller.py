@@ -6,6 +6,8 @@ import sys
 import numpy as np
 
 from functools import partial
+from collections import deque
+
 
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
@@ -21,13 +23,15 @@ from ros2_utils.robot_listener import robot_listener
 from ros2_utils.pose import prompt_pose_type_string,turtlebot_twist, stop_twist
 
 from motion_control.WaypointTracking import LQR_for_motion_mimicry
-# from util_func import local_dLdp
 
-from collections import deque
+from collision_avoidance.obstacle_detector import obstacle_detector, source_contact_detector
+from collision_avoidance.regions import RegionsIntersection, CircleExterior
+
+
 
 def get_control_action(waypoints,curr_x):
 	if len(waypoints)==0:
-		return stop_twist()
+		return []
 		
 	planning_dt = 0.1
 
@@ -42,12 +46,14 @@ def get_control_action(waypoints,curr_x):
 	# return vel_msg
 
 
+
 class motion_control_node(Node):
 
 	def __init__(self,robot_namespace,pose_type_string):
 		super().__init__(node_name = 'motion_control',namespace = robot_namespace)
 
 		self.robot_namespace = robot_namespace
+		self.pose_type_string = pose_type_string
 
 		qos = QoSProfile(depth=10)
 
@@ -60,33 +66,58 @@ class motion_control_node(Node):
 		sleep_time = 0.1
 		self.timer = self.create_timer(sleep_time,self.timer_callback)
 
-		# self.waypoints = []
+		self.waypoints = []
 		
 		# Temporary hard-coded waypoints used in devel.	
 		self.control_actions = deque([])
 
+		# Obstacles are expected to be circular ones, parametrized by (loc,radius)
+		self.obstacle_detector = obstacle_detector(self)
+		self.obstacles = []
+
+		self.source_contact_detector = source_contact_detector(self)
+
+
 	def waypoint_callback(self,data):
-		waypoints = np.array(data.data).reshape(-1,2)
+		# Waypoint callback typically spins at a lower frequency than the timer_callback of the single_robot_controller.
+		
+		self.waypoints = np.array(data.data).reshape(-1,2)
 
-		if len(self.rl.robot_loc_stack)>0:
-			loc=self.rl.robot_loc_stack[-1]
-			yaw=self.rl.robot_yaw_stack[-1]
-
-			curr_x = np.array([loc[0],loc[1],yaw])		
-
-			self.control_actions = deque(get_control_action(waypoints,curr_x))
-
+		
 	def timer_callback(self):
-		if len(self.control_actions)>0:
-			# Pop and publish the left-most control action.
-			[v,omega] = self.control_actions.popleft()
+		if self.source_contact_detector.contact():
+			self.vel_pub.publish(stop_twist())
+			self.get_logger().info('Source Contact')
+		else:
 
-			print(v,omega)
+			# Project waypoints onto obstacle-free spaces.
+			self.obstacles = self.obstacle_detector.get_obstacles()
 			
-			vel_msg = turtlebot_twist(v,omega)
-			self.vel_pub.publish(vel_msg)
-	
-			print("publishing")
+			free_space = RegionsIntersection([CircleExterior(origin,radius) for (origin,radius) in self.obstacles])
+			# self.get_logger().info(' '.join(str(self.obstacles)))
+
+
+			if len(self.rl.robot_loc_stack)>0 and len(self.waypoints)>0:
+				loc=self.rl.robot_loc_stack[-1]
+				yaw=self.rl.robot_yaw_stack[-1]
+
+				curr_x = np.array([loc[0],loc[1],yaw])		
+
+				self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
+
+			if len(self.control_actions)>0:
+
+				# Pop and publish the left-most control action.
+				[v,omega] = self.control_actions.popleft()
+
+				print(v,omega)
+				
+				vel_msg = turtlebot_twist(v,omega)
+				self.vel_pub.publish(vel_msg)
+			else:
+				self.vel_pub.publish(stop_twist())
+
+		print("publishing")
 
 
 def main(args = sys.argv):
