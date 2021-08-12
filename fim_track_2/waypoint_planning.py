@@ -25,14 +25,17 @@ from motion_control import WaypointPlanning
 
 from motion_control.WaypointTracking import BURGER_MAX_LIN_VEL
 
-from util_func import analytic_dLdp
+from util_func import analytic_dLdp, joint_F_single
+from consensus import consensus_handler
 
 
 
 class waypoint_planning_node(Node):
+	"""
+		Convention: neighborhood := {strict neighbors} + {myself}
+	"""
 
-
-	def __init__(self,robot_namespace, pose_type_string, neighborhood_namespaces=None):
+	def __init__(self,robot_namespace, pose_type_string, neighborhood_namespaces):
 		super().__init__(node_name = 'waypoint_planning',namespace = robot_namespace)
 
 		self.robot_namespace = robot_namespace
@@ -43,10 +46,8 @@ class waypoint_planning_node(Node):
 		qos = QoSProfile(depth=10)
 
 		self.wp_pub = self.create_publisher(Float32MultiArray, '/{}/waypoints'.format(robot_namespace), qos)
-	
+		
 		self.q_hat_sub = self.create_subscription(Float32MultiArray,'/{}/q_hat'.format(robot_namespace),self.q_hat_callback , qos)
-
-
 
 		if neighborhood_namespaces is None:
 			self.neighborhood_namespaces = get_sensor_names(self)
@@ -66,17 +67,29 @@ class waypoint_planning_node(Node):
 
 		self.q_hat = []
 
+		self.F = 0
+
 		# Hard-coded values used in development.
 		C1=-0.3
 		C0=0
 		b=-2
 		k=1
 
-		self.dLdp = partial(analytic_dLdp, C1s = C1, C0s = C0, ks=k, bs=b, FIM=None)
+		self.dLdp = partial(analytic_dLdp, C1s = C1, C0s = C0, ks=k, bs=b)
+		self.new_F = partial(joint_F_single, C1 = C1, C0 = C0, k=k, b =b)
+
+		# FIM consensus handler
+		self.FIM = np.ones((2,2))*1e-4
+		self.cons = consensus_handler(self,robot_namespace,neighborhood_namespaces,self.FIM,topic_name = 'FIM',qos=qos)
+
 
 	def get_my_loc(self):
 
 		return self.robot_listeners[self.robot_namespace].get_latest_loc()
+
+	def calc_new_F(self):
+		return self.new_F(self.q_hat,self.get_my_loc().reshape(1,-1))
+
 
 	def get_strict_neighbor_locs(self):
 		# Get neighbors' locations, not including myself.
@@ -104,17 +117,26 @@ class waypoint_planning_node(Node):
 		my_loc=self.get_my_loc()
 		
 		if (not my_loc is None) and len(self.q_hat)>0:
-			# Publish control actions.
+
 			neighbor_loc = self.get_strict_neighbor_locs()
 
-			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,self.dLdp, step_size = self.sleep_time * BURGER_MAX_LIN_VEL)	
-			print(self.q_hat,self.waypoints.shape)
+			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM), step_size = self.sleep_time * BURGER_MAX_LIN_VEL)	
+
 
 			# Publish the waypoints currently following.
 			out = Float32MultiArray()	
-			print(self.waypoints.ravel())
 			out.data = list(self.waypoints.ravel())
 			self.wp_pub.publish(out)
+
+			# Consensus on the global FIM estimate.
+			newF = self.calc_new_F()
+			dF = newF-self.F
+			self.cons.timer_callback(dx=dF)
+			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
+			self.F = newF
+
+			# self.get_logger().info(str(self.FIM))
+
 
 			print("publishing")
 

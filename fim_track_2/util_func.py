@@ -54,6 +54,18 @@ def analytic_FIM(q,ps,C1s,C0s,ks,bs):
 
     return As.T.dot(As) # Current FIM
 
+def F_single(dh,qhat,ps):
+    A = dh(qhat,ps)
+    return A.T.dot(A)
+
+def joint_F_single(qhat,ps,C1,C0,k,b): # Verified to be correct.
+    # The vectorized version of F_single.
+    # The output shape is (N_sensor, q_dim, q_dim).
+    # Where output[i]=F_single(dh,qhat,ps[i])
+    A = analytic_dhdq(qhat,ps,C1s=C1,C0s=C0,ks=k,bs=b)
+    return A[:,np.newaxis,:]*A[:,:,np.newaxis]
+
+
 def analytic_dLdp(q,ps,C1s,C0s,ks,bs,FIM=None):
     """
         The gradient is taken with respect to all the ps passed in. 
@@ -86,13 +98,9 @@ def analytic_dLdp(q,ps,C1s,C0s,ks,bs,FIM=None):
 
     return (c1*r_hat.T+c2*t_hat.T).T
 
-def local_dLdp(q,p,p_neighbor,C1s,C0s,ks,bs):
+def local_dLdp(q,p,p_neighborhood,C1s,C0s,ks,bs):
     
-    local_FIM = analytic_FIM(q,p_neighbor,C1s,C0s,ks,bs)
+    local_FIM = analytic_FIM(q,p_neighborhood,C1s,C0s,ks,bs)
 
     return analytic_dLdp(q,p,C1s,C0s,ks,bs,FIM = local_FIM)
 
-# Next:
-
-# def coordinated_dLdp(q,p,p_neighbor,C1s,C0s,ks,bs,consensus_weights):
-#     pass
