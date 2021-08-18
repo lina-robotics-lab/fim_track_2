@@ -18,16 +18,16 @@ from ros2_utils.pose import prompt_pose_type_string
 
 
 class calibration(Node):
-	def __init__(self,robot_namespace,target_namespace,pose_type_string,save_data=False,fit_type='light_readings'):
+	def __init__(self,robot_namespace,source_namespace,pose_type_string,save_data=False,fit_type='light_readings'):
 
-		print(robot_namespace,target_namespace)
+		print(robot_namespace,source_namespace)
 		super().__init__(node_name = 'calibration', namespace = robot_namespace)
 
 		self.robot =  robot_listener(self,robot_namespace,pose_type_string)
-		self.target = robot_listener(self,target_namespace,pose_type_string)
+		self.source = robot_listener(self,source_namespace,pose_type_string)
 
 		self.robot_locs = []
-		self.target_locs = []
+		self.source_locs = []
 		self.readings = []
 
 		awake_freq=10
@@ -39,17 +39,17 @@ class calibration(Node):
 	def timer_callback(self):
 
 		
-		data = [self.robot.get_latest_loc(),self.robot.get_latest_readings(),self.target.get_latest_loc()]
+		data = [self.robot.get_latest_loc(),self.robot.get_latest_readings(),self.source.get_latest_loc()]
 		# print(data)
 		if not any([d is None for d in data]):
 			self.robot_locs.append(data[0])
 			self.readings.append(data[1])
-			self.target_locs.append(data[2])
+			self.source_locs.append(data[2])
 			
 	
 	def calc_coefs(self):
 		return calibrate_meas_coef(np.array(self.robot_locs),
-							np.array(self.target_locs),
+							np.array(self.source_locs),
 							np.array(self.readings),fit_type=self.fit_type)
 		
 		
@@ -66,13 +66,19 @@ def main(args=sys.argv):
 
 	# Get the robot name passed in by the user
 	robot_namespace=""
-	target_namespace = ""
+	source_namespace = ""
 
 	if arguments >= position:
 		robot_namespace = args_without_ros[position]
+	else:
+		print('robot_namespace cannot be empty!')
+		return 1
 	
 	if arguments >= position+1:
-		target_namespace = args_without_ros[position+1]
+		source_namespace = args_without_ros[position+1]
+	else:
+		print('source_namespace cannot be empty!')
+		return 1
 	
 	if arguments >= position+2:
 		pose_type_string = args_without_ros[position+2]
@@ -80,7 +86,7 @@ def main(args=sys.argv):
 		pose_type_string = prompt_pose_type_string()
 	
 	
-	cl = calibration(robot_namespace,target_namespace,pose_type_string)
+	cl = calibration(robot_namespace,source_namespace,pose_type_string)
 	
 	try:
 		print('Coefficient Calibration Node Up')
@@ -88,6 +94,12 @@ def main(args=sys.argv):
 	except KeyboardInterrupt:
 		print("Keyboard Interrupt. Shutting Down...")
 	finally:
+		# Save the raw data to files.
+		data = {'Robot':cl.robot_locs,'Source':cl.source_locs,'Readings':cl.readings}
+		with open('calibration_data.pkl','wb+') as file:
+			pkl.dump(data,file)
+
+		# Save the calibrated coefficients to files.
 		cof = cl.calc_coefs()
 		print('Coefficients:',cof)
 		data = {'C1':cof[0],'C0':cof[1],'k':cof[2],'b':cof[3]}
@@ -98,6 +110,7 @@ def main(args=sys.argv):
 		cl.destroy_node()
 		print('Coefficient Calibration Node Down')
 		rclpy.shutdown()
+	return 0
 
 if __name__ == '__main__':
 	main()
