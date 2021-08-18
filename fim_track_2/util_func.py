@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.linear_model import LinearRegression
 
 def single_meas_func(C1,C0,k,b,dist):
     return k*(dist-C1)**b+C0
@@ -104,3 +105,77 @@ def local_dLdp(q,p,p_neighborhood,C1s,C0s,ks,bs):
 
     return analytic_dLdp(q,p,C1s,C0s,ks,bs,FIM = local_FIM)
 
+
+
+def top_n_mean(readings,n):
+    """
+        top_n_mean is used to convert the reading vector of the 8 light-sensors installed 
+        on Turtlebots into a single scalar value, representing the overall influence of 
+        the light source to the Turtlebots.
+    """
+    if len(readings.shape)==1:
+        return readings
+
+    rowwise_sort=np.sort(readings,axis=1)
+    return np.mean(rowwise_sort[:,-n:],axis=1)
+
+## The once and for all parameter calibration function.
+def calibrate_meas_coef(robot_loc,target_loc,light_readings,fit_type='light_readings',loss_type='rmse'):
+
+    def loss(C_1,dists,light_strengths,C_0=0,fit_type='light_readings',loss_type='rmse'):
+        '''
+            h(r)=k(r-C_1)**b+C_0
+        '''
+    
+        x=np.log(dists-C_1).reshape(-1,1)
+        y=np.log(light_strengths-C_0).reshape(-1,1)
+
+        model=LinearRegression().fit(x,y)
+
+        k=np.exp(model.intercept_[0])
+        b=model.coef_[0][0]
+
+
+        # print('fit_type:',fit_type)
+        if fit_type=="light_readings":
+            ## h(r)=k(r-C_1)**b+C_0
+            yhat=k*(dists-C_1)**b+C_0
+            
+            if loss_type=='max':
+                e=np.sqrt(np.max((yhat-light_strengths)**2))
+            else:
+                e=np.sqrt(np.mean((yhat-light_strengths)**2))
+        elif fit_type=='dists':
+            rh=rhat(light_strengths,C_1,C_0,k,b)
+            if loss_type=='max':
+                e=np.sqrt(np.max((rh-dists)**2))
+            else:
+                e=np.sqrt(np.mean((rh-dists)**2))
+        
+        return e,C_1,C_0,k,b
+
+    dists=np.sqrt(np.sum((robot_loc-target_loc)**2,axis=1))
+    light_strengths=top_n_mean(light_readings,4)
+    
+    ls=[]
+    ks=[]
+    bs=[]
+    C_1s= np.linspace(-10,np.min(dists)-0.01,100)
+    C_0s=np.linspace(-10,np.min(light_strengths)-0.01,100)
+    ls=[]
+    mls=[]
+    for C_1 in C_1s:
+        for C_0 in C_0s:
+
+            l,C_1,C_0,k,b=loss(C_1,dists,light_strengths,C_0=C_0,fit_type=fit_type,loss_type=loss_type)
+            ls.append(l)
+            ks.append(k)
+            bs.append(b)
+    
+    ls=np.array(ls).reshape(len(C_1s),len(C_0s))
+
+    best_indx=np.argmin(ls)
+    best_l=np.min(ls)
+    x,y=np.unravel_index(best_indx,ls.shape)
+    
+    return C_1s[x],C_0s[y],ks[best_indx],bs[best_indx]

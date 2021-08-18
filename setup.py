@@ -37,7 +37,8 @@ setup(
         'single_robot_controller = fim_track_2.single_robot_controller:main',
         'distributed_estimation = fim_track_2.distributed_estimation:main',
         'virtual_sensor = fim_track_2.virtual_sensor:main',
-        'waypoint_planning = fim_track_2.waypoint_planning:main'
+        'waypoint_planning = fim_track_2.waypoint_planning:main',
+        'calibrate = fim_track_2.calibrate_meas_coef:main'
         ],
     },
 )

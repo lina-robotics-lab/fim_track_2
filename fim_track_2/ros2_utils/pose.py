@@ -15,7 +15,7 @@ def prompt_pose_type_string():
     platform_2_pose_types['t']='Pose'
     platform_2_pose_types['o']='optitrack'
 
-    platform=input("Please indicate the platform of your experiment.\n s => turtlesim\n g => Gazebo\n t => Real Robots Turtlebot3 \n o => Optitrack:")
+    platform=input("Please indicate the platform of your experiment.\n s => turtlesim\n g => Gazebo\n s => SLAM \n o => Optitrack:")
     return platform_2_pose_types[platform]
 
 def get_pose_type_and_topic(pose_type_string,robot_namespace):
