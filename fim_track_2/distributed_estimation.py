@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 import numpy as np
 
@@ -21,7 +22,10 @@ from ros2_utils.pose import prompt_pose_type_string
 from ros2_utils.misc import get_sensor_names
 
 from estimation.ConsensusEKF import ConsensusEKF 
-from util_func import joint_meas_func, analytic_dhdz
+from util_func import joint_meas_func, analytic_dhdz, top_n_mean
+
+
+COEF_NAMES = ['C1','C0','k','b']
 
 class distributed_estimation_node(Node):
 
@@ -36,7 +40,7 @@ class distributed_estimation_node(Node):
 		else:
 			self.neighborhood_namespaces = neighborhood_namespaces
 
-		self.sensor_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string)\
+		self.sensor_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string,COEF_NAMES)\
 								 for namespace in neighborhood_namespaces}
 
 
@@ -60,26 +64,29 @@ class distributed_estimation_node(Node):
 		sleep_time = 0.5
 		self.timer = self.create_timer(sleep_time,self.timer_callback)
 
-
-
 		self.estimator = estimator
 
-	def neighbor_h(self):
+	def list_coefs(self,coef_dicts):
+		if len(coef_dicts)==0:
+			# Hard-coded values used in development.	
+			C1=-0.3
+			C0=0
+			b=-2
+			k=1
+		else:
+			C1=np.array([v['C1'] for v in coef_dicts])
+			C0=np.array([v['C0'] for v in coef_dicts])
+			b=np.array([v['b'] for v in coef_dicts])
+			k=np.array([v['k'] for v in coef_dicts])
+		return C1,C0,b,k
 
-		# Hard-coded values used in development.
-		C1=-0.3
-		C0=0
-		b=-2
-		k=1
-
+	def neighbor_h(self,coef_dicts=[]):
+		C1,C0,b,k = self.list_coefs(coef_dicts)
+			
 		return partial(joint_meas_func,C1,C0,k,b)
 	
-	def neighbor_dhdz(self):
-		# Hard-coded values used in development.
-		C1=-0.3
-		C0=0
-		b=-2
-		k=1
+	def neighbor_dhdz(self,coef_dicts=[]):
+		C1,C0,b,k = self.list_coefs(coef_dicts)
 
 		return partial(analytic_dhdz,C1s = C1,C0s = C0,ks = k,bs = b)
 
@@ -95,42 +102,55 @@ class distributed_estimation_node(Node):
 		# Temporary hard-coded equally consensus weights.
 		N_neighbor = len(y)
 		return 0.5 * np.ones(N_neighbor)/N_neighbor
+	
+	def process_readings(self,readings):
+		return top_n_mean(np.array(readings),4)
 
 	def timer_callback(self):
 		p = []
 		y = []
 		zhat = []
+		coefs = []
 
 		zh = self.estimator.get_z()
 
 		for name,sl in self.sensor_listeners.items():
-		
 			if len(sl.robot_loc_stack)>0 and \
-				 len(sl.light_reading_stack)>0:
-		
+				 len(sl.light_reading_stack)>0 and\
+				 	len(sl.coefs)==len(COEF_NAMES):
 					p.append(sl.get_latest_loc())
-					y.append(sl.get_latest_readings())
+					y.append(self.process_readings(sl.get_latest_readings()))
+					# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
 
 					if len(self.nb_zhats[name])>0:
 						zhat.append(self.nb_zhats[name])
 					else:
 						zhat.append(zh)
 
+					coefs.append(sl.coefs)
+
 		zhat = np.array(zhat)
-		
-		self.estimator.update(self.neighbor_h(),self.neighbor_dhdz(),y,p,zhat\
-								,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
+
+		if len(p)>0 and len(y)>0 and len(zhat)>0:
+			# print(y)
+			try:
+				self.estimator.update(self.neighbor_h(coefs),self.neighbor_dhdz(coefs),y,p,zhat\
+									,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
 
 
-		# Publish z_hat and q_hat
-		z_out = Float32MultiArray()
-		z_out.data = list(zh)
-		self.z_hat_pub.publish(z_out)
+				# Publish z_hat and q_hat
+				z_out = Float32MultiArray()
+				z_out.data = list(zh)
+				self.z_hat_pub.publish(z_out)
 
-		qh = self.estimator.get_q()
-		q_out = Float32MultiArray()
-		q_out.data = list(qh)
-		self.q_hat_pub.publish(q_out)
+				qh = self.estimator.get_q()
+				q_out = Float32MultiArray()
+				q_out.data = list(qh)
+				self.q_hat_pub.publish(q_out)
+				# print(qh)
+			except ValueError as err:
+				print("Not updating due to ValueError")
+				traceback.print_exc()
 
 
 def main(args=sys.argv):
@@ -155,7 +175,7 @@ def main(args=sys.argv):
 	if arguments >= position+2:
 		neighborhood = set(args_without_ros[position+2].split(','))
 	else:
-		neighborhood = set(['mobile_sensor_{}'.format(n) for n in range(4)])
+		neighborhood = set(['MobileSensor{}'.format(n) for n in range(1,4)])
 	
 	qhat_0 = (np.random.rand(2))*2
 	estimator = ConsensusEKF(qhat_0)
