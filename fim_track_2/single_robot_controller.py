@@ -10,7 +10,7 @@ from collections import deque
 
 
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray,Bool
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
@@ -59,6 +59,7 @@ class motion_control_node(Node):
 
 		self.vel_pub = self.create_publisher(Twist, '/{}/cmd_vel'.format(robot_namespace), qos)
 
+		self.move_sub = self.create_subscription(Bool,'/MISSION_CONTROL/MOVE',self.MOVE_CALLBACK,qos)
 		self.rl = robot_listener(self,robot_namespace,pose_type_string)
 		self.wp_sub = self.create_subscription(Float32MultiArray, '/{}/waypoints'.format(robot_namespace), self.waypoint_callback, qos)
 	
@@ -66,7 +67,9 @@ class motion_control_node(Node):
 		sleep_time = 0.1
 		self.timer = self.create_timer(sleep_time,self.timer_callback)
 
+		self.MOVE = False
 		self.waypoints = []
+
 		
 		# Temporary hard-coded waypoints used in devel.	
 		self.control_actions = deque([])
@@ -78,6 +81,18 @@ class motion_control_node(Node):
 		self.source_contact_detector = source_contact_detector(self)
 
 
+	def MOVE_CALLBACK(self,data):
+
+		if not self.MOVE == data.data:
+			if data.data:
+				self.get_logger().info('Robot Moving')
+			else:
+				self.get_logger().info('Robot Stopping')
+				self.vel_pub.publish(stop_twist())
+		
+
+		self.MOVE = data.data
+
 	def waypoint_callback(self,data):
 		# Waypoint callback typically spins at a lower frequency than the timer_callback of the single_robot_controller.
 		
@@ -85,39 +100,43 @@ class motion_control_node(Node):
 
 		
 	def timer_callback(self):
-		if self.source_contact_detector.contact():
-			self.vel_pub.publish(stop_twist())
-			self.get_logger().info('Source Contact')
-		else:
-
-			# Project waypoints onto obstacle-free spaces.
-			self.obstacles = self.obstacle_detector.get_obstacles()
-			
-			free_space = RegionsIntersection([CircleExterior(origin,radius) for (origin,radius) in self.obstacles])
-			# self.get_logger().info(' '.join(str(self.obstacles)))
-
-
-			if len(self.rl.robot_loc_stack)>0 and len(self.waypoints)>0:
-				loc=self.rl.robot_loc_stack[-1]
-				yaw=self.rl.robot_yaw_stack[-1]
-
-				curr_x = np.array([loc[0],loc[1],yaw])		
-
-				self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
-
-			if len(self.control_actions)>0:
-
-				# Pop and publish the left-most control action.
-				[v,omega] = self.control_actions.popleft()
-
-				print(v,omega)
-				
-				vel_msg = turtlebot_twist(v,omega)
-				self.vel_pub.publish(vel_msg)
-			else:
+		if self.MOVE:
+			if self.source_contact_detector.contact():
 				self.vel_pub.publish(stop_twist())
+				self.get_logger().info('Source Contact')
+			else:
 
-		print("publishing")
+				# Project waypoints onto obstacle-free spaces.
+				self.obstacles = self.obstacle_detector.get_obstacles()
+				
+				free_space = RegionsIntersection([CircleExterior(origin,radius) for (origin,radius) in self.obstacles])
+				# self.get_logger().info(' '.join(str(self.obstacles)))
+
+
+				if len(self.rl.robot_loc_stack)>0 and len(self.waypoints)>0:
+					loc=self.rl.robot_loc_stack[-1]
+					yaw=self.rl.robot_yaw_stack[-1]
+
+					curr_x = np.array([loc[0],loc[1],yaw])		
+
+					self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
+
+				if len(self.control_actions)>0:
+
+					# Pop and publish the left-most control action.
+					[v,omega] = self.control_actions.popleft()
+
+					print(v,omega)
+					print("Moving")
+					
+					vel_msg = turtlebot_twist(v,omega)
+					self.vel_pub.publish(vel_msg)
+				else:
+					self.vel_pub.publish(stop_twist())
+					# print("Running out of control actions.")
+		else:
+			self.vel_pub.publish(stop_twist())
+			# print('MOVE signal is False.')
 
 
 def main(args = sys.argv):

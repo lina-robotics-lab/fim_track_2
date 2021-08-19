@@ -115,7 +115,8 @@ class waypoint_planning_node(Node):
 	def timer_callback(self):
 		
 		my_loc=self.get_my_loc()
-		
+	
+
 		if (not my_loc is None) and len(self.q_hat)>0:
 
 			neighbor_loc = self.get_strict_neighbor_locs()
@@ -135,11 +136,19 @@ class waypoint_planning_node(Node):
 			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
 			self.F = newF
 
+			print("publishing")
+
+
 			# self.get_logger().info(str(self.FIM))
 
 
-			print("publishing")
+		# Publish the waypoints currently following.
+		# out = Float32MultiArray()	
+		# out.data = list(self.waypoints.ravel())
+		# self.wp_pub.publish(out)
 
+
+	
 
 def main(args = sys.argv):
 
@@ -165,7 +174,7 @@ def main(args = sys.argv):
 	if arguments >= position+2:
 		neighborhood = set(args_without_ros[position+2].split(','))
 	else:
-		neighborhood = set(['mobile_sensor_{}'.format(n) for n in range(4)])
+		neighborhood = set(['MobileSensor{}'.format(n) for n in range(4)])
 	
 	WP = waypoint_planning_node(robot_namespace,pose_type_string,neighborhood_namespaces = neighborhood)
 

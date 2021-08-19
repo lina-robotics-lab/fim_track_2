@@ -27,8 +27,8 @@ class obstacle_detector:
 
 class source_contact_detector:
 	def __init__(self,mc_node):
-		self.src_names = get_source_names(mc_node)
-
+		# self.src_names = get_source_names(mc_node)
+		self.src_names = ['Source0']
 		self.sl = [robot_listener(mc_node,name,mc_node.pose_type_string) for name in self.src_names]
 		self.mc_node = mc_node
 
@@ -43,4 +43,4 @@ class source_contact_detector:
 			if src_loc is None:
 				return False
 			# self.mc_node.get_logger().info(str(src_loc)+','+str(sensor_loc)+str(self.src_names))
-			return np.any(np.linalg.norm(src_loc-sensor_loc)<=3*BURGER_RADIUS)
+			return np.any(np.linalg.norm(src_loc-sensor_loc)<=0*BURGER_RADIUS)

@@ -38,7 +38,9 @@ setup(
         'distributed_estimation = fim_track_2.distributed_estimation:main',
         'virtual_sensor = fim_track_2.virtual_sensor:main',
         'waypoint_planning = fim_track_2.waypoint_planning:main',
-        'calibrate = fim_track_2.calibrate_meas_coef:main'
+        'calibrate = fim_track_2.calibrate_meas_coef:main',
+        'arm = fim_track_2.MISSION_CONTROL.ARM:main',
+        'move = fim_track_2.MISSION_CONTROL.MOVE:main',
         ],
     },
 )

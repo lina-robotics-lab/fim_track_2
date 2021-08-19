@@ -121,7 +121,8 @@ class distributed_estimation_node(Node):
 					p.append(sl.get_latest_loc())
 					y.append(self.process_readings(sl.get_latest_readings()))
 					# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
-
+					# self.get_logger().info('scalar y:{}. y:{}'.format(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings()))
+	
 					if len(self.nb_zhats[name])>0:
 						zhat.append(self.nb_zhats[name])
 					else:
@@ -130,7 +131,7 @@ class distributed_estimation_node(Node):
 					coefs.append(sl.coefs)
 
 		zhat = np.array(zhat)
-
+		# self.get_logger().info('zhat:{}. zh:{}'.format(zhat,zh))
 		if len(p)>0 and len(y)>0 and len(zhat)>0:
 			# print(y)
 			try:
@@ -147,7 +148,7 @@ class distributed_estimation_node(Node):
 				q_out = Float32MultiArray()
 				q_out.data = list(qh)
 				self.q_hat_pub.publish(q_out)
-				# print(qh)
+				self.get_logger().info('qhat:{}'.format(qh))
 			except ValueError as err:
 				print("Not updating due to ValueError")
 				traceback.print_exc()
