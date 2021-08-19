@@ -1,6 +1,4 @@
-# The next line should be 
-# $HOSTNAME:
-MobileSensor3:
+MobileSensor2:
   turtlebot3_node:
     ros__parameters:
 
@@ -30,9 +28,7 @@ MobileSensor3:
 
         sonar: false
 
-# The next line should be 
-# $HOSTNAME:
-MobileSensor3:
+MobileSensor2:
   diff_drive_controller:
     ros__parameters:
 
