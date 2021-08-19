@@ -114,7 +114,8 @@ def top_n_mean(readings,n):
         the light source to the Turtlebots.
     """
     if len(readings.shape)==1:
-        return readings
+        rowwise_sort = np.sort(readings)
+        return np.mean(rowwise_sort[-n:])
 
     rowwise_sort=np.sort(readings,axis=1)
     return np.mean(rowwise_sort[:,-n:],axis=1)
