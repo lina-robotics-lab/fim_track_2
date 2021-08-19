@@ -119,6 +119,7 @@ class distributed_estimation_node(Node):
 				 len(sl.light_reading_stack)>0 and\
 				 	len(sl.coefs)==len(COEF_NAMES):
 					p.append(sl.get_latest_loc())
+					print('Yaw of {}:{}'.format(name,sl.get_latest_yaw()))
 					y.append(self.process_readings(sl.get_latest_readings()))
 					# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
 					# self.get_logger().info('scalar y:{}. y:{}'.format(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings()))
@@ -131,6 +132,7 @@ class distributed_estimation_node(Node):
 					coefs.append(sl.coefs)
 
 		zhat = np.array(zhat)
+
 		# self.get_logger().info('zhat:{}. zh:{}'.format(zhat,zh))
 		if len(p)>0 and len(y)>0 and len(zhat)>0:
 			# print(y)

@@ -1,3 +1,5 @@
+import socket
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -19,4 +21,10 @@ def generate_launch_description():
                 [ThisLaunchFileDir() , '/my_tb3_bringup.launch.py']))
 
 
-	return LaunchDescription([bringup,publish_light])
+	return LaunchDescription([
+		bringup,
+		publish_light, 	
+		Node(package = 'fim_track_2',
+				executable = 'distributed_estimation',
+				arguments = [socket.gethostname(),'optitrack',['MobileSensor{}'.format(range(1,4))]]
+				)])

@@ -69,18 +69,35 @@ class waypoint_planning_node(Node):
 
 		self.F = 0
 
-		# Hard-coded values used in development.
-		C1=-0.3
-		C0=0
-		b=-2
-		k=1
-
-		self.dLdp = partial(analytic_dLdp, C1s = C1, C0s = C0, ks=k, bs=b)
-		self.new_F = partial(joint_F_single, C1 = C1, C0 = C0, k=k, b =b)
-
 		# FIM consensus handler
 		self.FIM = np.ones((2,2))*1e-4
 		self.cons = consensus_handler(self,robot_namespace,neighborhood_namespaces,self.FIM,topic_name = 'FIM',qos=qos)
+	
+	def list_coefs(self,coef_dicts):
+		if len(coef_dicts)==0:
+			# Hard-coded values used in development.	
+			C1=-0.3
+			C0=0
+			b=-2
+			k=1
+		else:
+			C1=np.array([v['C1'] for v in coef_dicts])
+			C0=np.array([v['C0'] for v in coef_dicts])
+			b=np.array([v['b'] for v in coef_dicts])
+			k=np.array([v['k'] for v in coef_dicts])
+		return C1,C0,b,k
+	
+	def dLdp(self,q_hat,ps,FIM,coef_dicts=[]):
+
+		C1,C0,b,k = self.list_coefs(coef_dicts)
+		
+		return analytic_dLdp(q=q_hat,ps=ps, C1s = C1, C0s = C0, ks=k, bs=b,FIM=FIM)
+	
+	def new_F(self,q_hat,p,coef_dicts=[]):
+		
+		C1,C0,b,k = self.list_coefs(coef_dicts)
+
+		return joint_F_single(qhat=q_hat,ps=p,C1 = C1, C0 = C0, k=k, b =b)
 
 
 	def get_my_loc(self):

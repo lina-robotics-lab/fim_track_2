@@ -21,7 +21,7 @@ class obstacle_detector:
 		self.ol = [robot_listener(mc_node,name,mc_node.pose_type_string) for name in self.obs_names if not name == mc_node.robot_namespace]
 
 	def get_obstacles(self):
-		return [(l.get_latest_loc(),2.5*BURGER_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
+		return [(l.get_latest_loc(),1*BURGER_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
 		 
 
 
@@ -42,5 +42,5 @@ class source_contact_detector:
 			src_loc = np.array([l.get_latest_loc() for l in self.sl if not l.get_latest_loc() is None]).reshape(-1,len(sensor_loc))
 			if src_loc is None:
 				return False
-			# self.mc_node.get_logger().info(str(src_loc)+','+str(sensor_loc)+str(self.src_names))
+			self.mc_node.get_logger().info(str(src_loc)+','+str(sensor_loc)+str(self.src_names))
 			return np.any(np.linalg.norm(src_loc-sensor_loc)<=0*BURGER_RADIUS)

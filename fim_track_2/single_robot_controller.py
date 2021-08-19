@@ -137,7 +137,7 @@ class motion_control_node(Node):
 		else:
 			self.vel_pub.publish(stop_twist())
 
-		self.MOVE=False # Crucial: reset self.MOVE to False everytime after new velocity is published, so that the robots will stop when remote loses connetion.
+		# self.MOVE=False # Crucial: reset self.MOVE to False everytime after new velocity is published, so that the robots will stop when remote loses connetion.
 	
 
 def main(args = sys.argv):

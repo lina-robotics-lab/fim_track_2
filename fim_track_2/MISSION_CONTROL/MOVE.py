@@ -13,7 +13,7 @@ from std_msgs.msg import Bool
 class NotArmedError(Exception):
     pass
 
-TOTAL_WAITING_TIME=5
+TOTAL_WAITING_TIME=3
 
 class MOVE(Node):
 	def __init__(self):
@@ -21,7 +21,7 @@ class MOVE(Node):
 		
 		qos = QoSProfile(depth=10)
 		self.create_subscription(Bool,'/MISSION_CONTROL/ARM_ROBOTS',self.ARM_CALLBACK,qos)
-		self.pub_ = self.create_publisher(Bool,'/MISSION_CONTROL/MOVE',10)
+		self.pub_ = self.create_publisher(Bool,'/MISSION_CONTROL/MOVE',qos)
 
 		self.ARM=None
 

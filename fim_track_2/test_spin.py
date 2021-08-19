@@ -55,7 +55,7 @@ class test_spin(Node):
 			vel_msg = turtlebot_twist(0.0,1.2)
 			self.vel_pub.publish(vel_msg)
 
-			self.MOVE=False # Crucial: reset self.MOVE to False everytime after new velocity is published, so that the robots will stop when remote loses connetion.
+			# self.MOVE=False # Crucial: reset self.MOVE to False everytime after new velocity is published, so that the robots will stop when remote loses connetion.
 		else:
 			self.vel_pub.publish(stop_twist())
 
