@@ -41,6 +41,7 @@ setup(
         'calibrate = fim_track_2.calibrate_meas_coef:main',
         'arm = fim_track_2.MISSION_CONTROL.ARM:main',
         'move = fim_track_2.MISSION_CONTROL.MOVE:main',
+        'test_motion = fim_track_2.test_spin:main'
         ],
     },
 )

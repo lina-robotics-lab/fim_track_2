@@ -136,8 +136,9 @@ class motion_control_node(Node):
 					# print("Running out of control actions.")
 		else:
 			self.vel_pub.publish(stop_twist())
-			# print('MOVE signal is False.')
 
+		self.MOVE=False # Crucial: reset self.MOVE to False everytime after new velocity is published, so that the robots will stop when remote loses connetion.
+	
 
 def main(args = sys.argv):
 
