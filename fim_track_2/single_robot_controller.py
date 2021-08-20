@@ -20,7 +20,7 @@ tools_root = os.path.join(os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath(tools_root))
 
 from ros2_utils.robot_listener import robot_listener
-from ros2_utils.pose import prompt_pose_type_string,turtlebot_twist, stop_twist
+from ros2_utils.pose import prompt_pose_type_string,bounded_change_update, turtlebot_twist, stop_twist
 
 from motion_control.WaypointTracking import LQR_for_motion_mimicry
 
@@ -80,6 +80,9 @@ class motion_control_node(Node):
 
 		self.source_contact_detector = source_contact_detector(self)
 
+		# current control actions
+		self.v = 0.0
+		self.omega = 0.0
 
 	def MOVE_CALLBACK(self,data):
 
@@ -88,8 +91,6 @@ class motion_control_node(Node):
 				self.get_logger().info('Robot Moving')
 			else:
 				self.get_logger().info('Robot Stopping')
-				self.vel_pub.publish(stop_twist())
-		
 
 		self.MOVE = data.data
 
@@ -100,7 +101,8 @@ class motion_control_node(Node):
 
 		
 	def timer_callback(self):
-		if self.MOVE:
+		# if self.MOVE:
+		if True:
 			if self.source_contact_detector.contact():
 				self.vel_pub.publish(stop_twist())
 				self.get_logger().info('Source Contact')
@@ -120,23 +122,36 @@ class motion_control_node(Node):
 					curr_x = np.array([loc[0],loc[1],yaw])		
 
 					self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
-
+					print(loc,yaw)
 				if len(self.control_actions)>0:
 
 					# Pop and publish the left-most control action.
-					[v,omega] = self.control_actions.popleft()
 
+					[v,omega] = self.control_actions.popleft()
 					print(v,omega)
-					print("Moving")
+					
+					[v,omega] = bounded_change_update(v,omega,self.v,self.omega) # Get a vel_msg that satisfies max change and max value constraints.
 					
 					vel_msg = turtlebot_twist(v,omega)
+
+					# Update current v and omega
+					self.v = v
+					self.omega = omega
+
 					self.vel_pub.publish(vel_msg)
 				else:
 					self.vel_pub.publish(stop_twist())
-					# print("Running out of control actions.")
+					print("Running out of control actions.")
+
+					# Update current v and omega
+					self.v = 0.0
+					self.omega = 0.0
+
 		else:
 			self.vel_pub.publish(stop_twist())
-
+			# Update current v and omega
+			self.v = 0.0
+			self.omega = 0.0
 		# self.MOVE=False # Crucial: reset self.MOVE to False everytime after new velocity is published, so that the robots will stop when remote loses connetion.
 	
 

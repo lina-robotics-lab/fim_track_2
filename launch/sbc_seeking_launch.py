@@ -26,5 +26,5 @@ def generate_launch_description():
 		publish_light, 	
 		Node(package = 'fim_track_2',
 				executable = 'distributed_estimation',
-				arguments = [socket.gethostname(),'optitrack',['MobileSensor{}'.format(range(1,4))]]
+				arguments = [socket.gethostname(),'optitrack',['MobileSensor{}'.format(i) for i in range(1,4)]]
 				)])

@@ -63,7 +63,7 @@ class waypoint_planning_node(Node):
 		# self.waypoints = []
 		
 		# Temporary hard-coded waypoints used in devel.	
-		self.waypoints = np.array([[4.,1],[5.,1],[6.,1]])
+		self.waypoints = np.array([[0.,1],[1.,1],[2.,1],[3,1]])
 
 		self.q_hat = []
 
@@ -134,35 +134,35 @@ class waypoint_planning_node(Node):
 		my_loc=self.get_my_loc()
 	
 
-		if (not my_loc is None) and len(self.q_hat)>0:
+		# if (not my_loc is None) and len(self.q_hat)>0:
 
-			neighbor_loc = self.get_strict_neighbor_locs()
+		# 	neighbor_loc = self.get_strict_neighbor_locs()
 
-			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM), step_size = self.sleep_time * BURGER_MAX_LIN_VEL)	
+		# 	self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM), step_size = self.sleep_time * BURGER_MAX_LIN_VEL)	
 
 
-			# Publish the waypoints currently following.
-			out = Float32MultiArray()	
-			out.data = list(self.waypoints.ravel())
-			self.wp_pub.publish(out)
+		# 	# Publish the waypoints currently following.
+		# 	out = Float32MultiArray()	
+		# 	out.data = list(self.waypoints.ravel())
+		# 	self.wp_pub.publish(out)
 
-			# Consensus on the global FIM estimate.
-			newF = self.calc_new_F()
-			dF = newF-self.F
-			self.cons.timer_callback(dx=dF)
-			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
-			self.F = newF
+		# 	# Consensus on the global FIM estimate.
+		# 	newF = self.calc_new_F()
+		# 	dF = newF-self.F
+		# 	self.cons.timer_callback(dx=dF)
+		# 	self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
+		# 	self.F = newF
 
-			print("publishing")
+		# 	print("publishing")
 
 
 			# self.get_logger().info(str(self.FIM))
 
 
 		# Publish the waypoints currently following.
-		# out = Float32MultiArray()	
-		# out.data = list(self.waypoints.ravel())
-		# self.wp_pub.publish(out)
+		out = Float32MultiArray()	
+		out.data = list(self.waypoints.ravel())
+		self.wp_pub.publish(out)
 
 
 	

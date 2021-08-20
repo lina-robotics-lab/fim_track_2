@@ -8,6 +8,10 @@ from nav_msgs.msg import Odometry
 BURGER_MAX_LIN_VEL = 0.22
 BURGER_MAX_ANG_VEL = 2.84
 
+
+LIN_VEL_STEP_SIZE = 0.01
+ANG_VEL_STEP_SIZE = 0.1
+
 def prompt_pose_type_string():
     platform_2_pose_types=dict()
     platform_2_pose_types['s']="turtlesimPose"
@@ -101,7 +105,26 @@ def posestmp2xy(pose):
 def posestmp2yaw(pose):
     return quaternion2yaw(pose.pose.orientation)
 
-    
+
+
+
+def bounded_change_update(target_v,target_omega,curr_v,curr_omega):
+
+    def make_simple_profile(output, input, slop):
+        if input > output:
+            output = min( input, output + slop )
+        elif input < output:
+            output = max( input, output - slop )
+        else:
+            output = input
+
+        return output
+
+    v = make_simple_profile(curr_v,target_v,LIN_VEL_STEP_SIZE/2.0)
+    omega = make_simple_profile(curr_omega,target_omega,ANG_VEL_STEP_SIZE/2.0)
+
+    return [v,omega]
+
 def turtlebot_twist(v,omega):
     def constrain(input, low, high):
         if input < low:

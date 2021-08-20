@@ -35,6 +35,7 @@ setup(
         'manual_teleop_key = fim_track_2.manual_teleop_key:main',
         'spawn_entity = fim_track_2.spawn_entity:main',
         'single_robot_controller = fim_track_2.single_robot_controller:main',
+        'single_robot_controller_test = fim_track_2.single_robot_controller_notimer:main',
         'distributed_estimation = fim_track_2.distributed_estimation:main',
         'virtual_sensor = fim_track_2.virtual_sensor:main',
         'waypoint_planning = fim_track_2.waypoint_planning:main',
