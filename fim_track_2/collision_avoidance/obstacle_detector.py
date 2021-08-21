@@ -39,8 +39,11 @@ class source_contact_detector:
 		if sensor_loc is None:
 			return False
 		else:
-			src_loc = np.array([l.get_latest_loc() for l in self.sl if not l.get_latest_loc() is None]).reshape(-1,len(sensor_loc))
-			if src_loc is None:
+			src_loc = [l.get_latest_loc() for l in self.sl if not l.get_latest_loc() is None]
+			if len(src_loc)==0:
 				return False
+
+			src_loc = np.array(src_loc).reshape(-1,len(sensor_loc))
+			
 			# self.mc_node.get_logger().info(str(src_loc)+','+str(sensor_loc)+str(self.src_names))
 			return np.any(np.linalg.norm(src_loc-sensor_loc)<=0*BURGER_RADIUS)

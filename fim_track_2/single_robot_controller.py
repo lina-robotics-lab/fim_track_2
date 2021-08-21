@@ -101,8 +101,8 @@ class motion_control_node(Node):
 
 		
 	def timer_callback(self):
-		# if self.MOVE:
-		if True:
+		if self.MOVE:
+		# if True:
 			if self.source_contact_detector.contact():
 				self.vel_pub.publish(stop_twist())
 				self.get_logger().info('Source Contact')
@@ -112,7 +112,6 @@ class motion_control_node(Node):
 				self.obstacles = self.obstacle_detector.get_obstacles()
 				
 				free_space = RegionsIntersection([CircleExterior(origin,radius) for (origin,radius) in self.obstacles])
-				# self.get_logger().info(' '.join(str(self.obstacles)))
 
 
 				if len(self.rl.robot_loc_stack)>0 and len(self.waypoints)>0:
@@ -122,13 +121,11 @@ class motion_control_node(Node):
 					curr_x = np.array([loc[0],loc[1],yaw])		
 
 					self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
-					print(loc,yaw)
 				if len(self.control_actions)>0:
 
 					# Pop and publish the left-most control action.
 
 					[v,omega] = self.control_actions.popleft()
-					print(v,omega)
 					
 					[v,omega] = bounded_change_update(v,omega,self.v,self.omega) # Get a vel_msg that satisfies max change and max value constraints.
 					

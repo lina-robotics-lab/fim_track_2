@@ -13,7 +13,7 @@ class ARM(Node):
 		sleep_time = 0.5
 		self.timer = self.create_timer(sleep_time,self.timer_callback)
 	def timer_callback(self):
-		print("armed")
+		# print("armed")
 		self.arm()
 
 	def arm(self):
@@ -31,7 +31,7 @@ def main():
 	rclpy.init()
 	arm = ARM()
 	try:
-		print('Arming Robots')
+		print('Armed.')
 		rclpy.spin(arm)
 	except KeyboardInterrupt:
 		print("Keyboard Interrupt. Disarming robots...")
