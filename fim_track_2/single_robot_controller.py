@@ -57,7 +57,7 @@ class motion_control_node(Node):
 
 		qos = QoSProfile(depth=10)
 
-		self.vel_pub = self.create_publisher(Twist, '/{}/cmd_vel'.format(robot_namespace), qos)
+		self.vel_pub = self.create_publisher(Twist, 'cmd_vel', qos)
 
 		self.move_sub = self.create_subscription(Bool,'/MISSION_CONTROL/MOVE',self.MOVE_CALLBACK,qos)
 		self.rl = robot_listener(self,robot_namespace,pose_type_string)

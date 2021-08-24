@@ -31,7 +31,6 @@ class distributed_estimation_node(Node):
 
 	def __init__(self,robot_namespace,pose_type_string,estimator,neighborhood_namespaces=None):
 		super().__init__(node_name = 'estimation', namespace = robot_namespace)
-
 		self.pose_type_string = pose_type_string
 		self.robot_namespace = robot_namespace
 
@@ -116,7 +115,7 @@ class distributed_estimation_node(Node):
 
 		for name,sl in self.sensor_listeners.items():
 			# self.get_logger().info('scalar y:{}.'.format(self.process_readings(sl.get_latest_readings())))
-			# print(sl.coef_future.done(),sl.get_coefs())	
+			# print(name,sl.coef_future.done(),sl.get_coefs())	
 			loc = sl.get_latest_loc()
 			reading = sl.get_latest_readings()
 			coef = sl.get_coefs()
@@ -154,8 +153,9 @@ class distributed_estimation_node(Node):
 			q_out.data = list(qh)
 			self.q_hat_pub.publish(q_out)
 			self.get_logger().info('qhat:{}'.format(qh))
+
 		except ValueError as err:
-			print("Not updating due to ValueError")
+			self.get_logger().info("Not updating due to ValueError")
 			traceback.print_exc()
 
 

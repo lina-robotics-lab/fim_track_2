@@ -15,7 +15,7 @@ def joint_meas_func(C1s,C0s,ks,bs,x,ps):
     p=np.array(ps)
 
     # Keep in mind that x is a vector of [q,q'], thus only the first half of components are observable.    
-    dists=np.linalg.norm(x[:len(x)//2]-p,axis=1)
+    dists=np.linalg.norm(x[:len(x)//2]-p,axis=-1)
 
     return single_meas_func(C1,C0,k,b,dists) 
 
@@ -34,7 +34,7 @@ def analytic_dhdz(x,ps,C1s,C0s,ks,bs):
 
 def analytic_dhdq(q,ps,C1s,C0s,ks,bs):
     # rs = jnp.linalg.norm(ps-q,axis=1)
-    rs = np.linalg.norm(ps-q,axis=1)
+    rs = np.linalg.norm(ps-q,axis=-1)
    
     r_hat = ((ps-q).T/rs).T
     d = dhdr(rs,C1s,C0s,ks,bs)
@@ -43,7 +43,7 @@ def analytic_dhdq(q,ps,C1s,C0s,ks,bs):
 
 def analytic_FIM(q,ps,C1s,C0s,ks,bs):
     # rs = np.linalg.norm(ps-q,axis=1)
-    rs = np.linalg.norm(ps-q,axis=1)
+    rs = np.linalg.norm(ps-q,axis=-1)
     r_hat = ((ps-q).T/rs).T
 
 
@@ -75,7 +75,7 @@ def analytic_dLdp(q,ps,C1s,C0s,ks,bs,FIM=None):
         use the passed in FIM for the calculation of Q below.
     """
   
-    rs = np.linalg.norm(ps-q,axis=1)
+    rs = np.linalg.norm(ps-q,axis=-1)
     r_hat = ((ps-q).T/rs).T
     t_hat=np.zeros(r_hat.shape)
     t_hat[:,0]=-r_hat[:,1]
@@ -84,9 +84,9 @@ def analytic_dLdp(q,ps,C1s,C0s,ks,bs,FIM=None):
     d = dhdr(rs,C1s,C0s,ks,bs)
     dd = d2hdr2(rs,C1s,C0s,ks,bs)
 
-    wrhat=(d*r_hat.T).T
 
     if FIM is None:
+        wrhat=(d*r_hat.T).T
         Q = np.linalg.inv(wrhat.T.dot(wrhat)) # Default calculation of FIM^-1
     else:
         # print('Coordinating')
@@ -117,8 +117,8 @@ def top_n_mean(readings,n):
         rowwise_sort = np.sort(readings)
         return np.mean(rowwise_sort[-n:])
 
-    rowwise_sort=np.sort(readings,axis=1)
-    return np.mean(rowwise_sort[:,-n:],axis=1)
+    rowwise_sort=np.sort(readings,axis=-1)
+    return np.mean(rowwise_sort[:,-n:],axis=-1)
 
 ## The once and for all parameter calibration function.
 def calibrate_meas_coef(robot_loc,target_loc,light_readings,fit_type='light_readings',loss_type='rmse'):
@@ -155,7 +155,7 @@ def calibrate_meas_coef(robot_loc,target_loc,light_readings,fit_type='light_read
         
         return e,C_1,C_0,k,b
 
-    dists=np.sqrt(np.sum((robot_loc-target_loc)**2,axis=1))
+    dists=np.sqrt(np.sum((robot_loc-target_loc)**2,axis=-1))
     light_strengths=top_n_mean(light_readings,4)
     
     ls=[]

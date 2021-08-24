@@ -29,6 +29,7 @@ from util_func import analytic_dLdp, joint_F_single
 from consensus import consensus_handler
 
 
+COEF_NAMES = ['C1','C0','k','b']
 
 class waypoint_planning_node(Node):
 	"""
@@ -45,7 +46,7 @@ class waypoint_planning_node(Node):
 
 		qos = QoSProfile(depth=10)
 
-		self.wp_pub = self.create_publisher(Float32MultiArray, '/{}/waypoints'.format(robot_namespace), qos)
+		self.wp_pub = self.create_publisher(Float32MultiArray, 'waypoints'.format(robot_namespace), qos)
 		
 		self.q_hat_sub = self.create_subscription(Float32MultiArray,'/{}/q_hat'.format(robot_namespace),self.q_hat_callback , qos)
 
@@ -54,7 +55,7 @@ class waypoint_planning_node(Node):
 		else:
 			self.neighborhood_namespaces = neighborhood_namespaces
 
-		self.robot_listeners = {namespace:robot_listener(self,namespace,pose_type_string)\
+		self.robot_listeners = {namespace:robot_listener(self,namespace,pose_type_string,COEF_NAMES)\
 								 for namespace in neighborhood_namespaces}
 
 		self.sleep_time = 1
@@ -82,6 +83,7 @@ class waypoint_planning_node(Node):
 			b=-2
 			k=1
 		else:
+			print(coef_dicts)
 			C1=np.array([v['C1'] for v in coef_dicts])
 			C0=np.array([v['C0'] for v in coef_dicts])
 			b=np.array([v['b'] for v in coef_dicts])
@@ -94,38 +96,21 @@ class waypoint_planning_node(Node):
 		
 		return analytic_dLdp(q=q_hat,ps=ps, C1s = C1, C0s = C0, ks=k, bs=b,FIM=FIM)
 	
-	def new_F(self,q_hat,p,coef_dicts=[]):
-		
-		C1,C0,b,k = self.list_coefs(coef_dicts)
-
-		return joint_F_single(qhat=q_hat,ps=p,C1 = C1, C0 = C0, k=k, b =b)
-
+	
 
 	def get_my_loc(self):
 
 		return self.robot_listeners[self.robot_namespace].get_latest_loc()
-
-	def calc_new_F(self):
-		return self.new_F(self.q_hat,self.get_my_loc().reshape(1,-1))
-
-
-	def get_strict_neighbor_locs(self):
-		# Get neighbors' locations, not including myself.
-
-		ps = [nl.get_latest_loc() for nl in self.robot_listeners.values() if not nl.robot_name==self.robot_namespace]
-
-		return np.array([p for p in ps if not p is None]).reshape(-1,2)
 	
-	def get_neighborhood_locs(self):
-		# Get robot locations in the neighborhood, including myself placed in the first row.
+	def get_my_coefs(self):
+	
+		return self.robot_listeners[self.robot_namespace].get_coefs()
 
-		loc = self.get_my_loc()
-		nb_loc = self.get_strict_neighbor_locs()
+	def calc_new_F(self,coef_dicts=[]):
 
-		if (not loc is None):
-			return np.vstack([loc,nb_loc])
-		else:
-			return []
+		C1,C0,b,k = self.list_coefs(coef_dicts)
+
+		return	joint_F_single(qhat=self.q_hat,ps=self.get_my_loc().reshape(1,-1),C1 = C1, C0 = C0, k=k, b =b)
 
 	def q_hat_callback(self,data):
 		self.q_hat = np.array(data.data).ravel()
@@ -133,13 +118,27 @@ class waypoint_planning_node(Node):
 	def timer_callback(self):
 		
 		my_loc=self.get_my_loc()
-	
+		my_coefs = self.get_my_coefs()
+		# print(my_loc,my_coefs,self.q_hat)
+		if (not my_loc is None) and len(my_coefs)>0 and len(self.q_hat)>0:
 
-		if (not my_loc is None) and len(self.q_hat)>0:
+			# Get neighborhood locations and coefs, in matching order.
+			# Make sure my_coef is on the top.
 
-			neighbor_loc = self.get_strict_neighbor_locs()
+			neighbor_loc = []
 
-			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM), step_size = self.sleep_time * BURGER_MAX_LIN_VEL)	
+			neighborhood_coefs =[]
+			for name,nl in self.robot_listeners.items():
+				if not name == self.robot_namespace:
+					loc = nl.get_latest_loc()
+					coef = nl.get_coefs()
+					if (not loc is None) and (len(coef)>0):
+						neighbor_loc.append(loc)
+						neighborhood_coefs.append(coef)
+			
+			neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
+
+			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), step_size = self.sleep_time * BURGER_MAX_LIN_VEL)	
 
 
 			# Publish the waypoints currently following.
@@ -150,11 +149,11 @@ class waypoint_planning_node(Node):
 			# Consensus on the global FIM estimate.
 			newF = self.calc_new_F()
 			dF = newF-self.F
-			self.cons.timer_callback(dx=dF)
+			self.cons.timer_callback(dx=dF) # Publish dF to the network.
 			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
 			self.F = newF
 
-			print("publishing")
+			self.get_logger().info("publishing")
 
 
 			# self.get_logger().info(str(self.FIM))
@@ -192,7 +191,8 @@ def main(args = sys.argv):
 	if arguments >= position+2:
 		neighborhood = set(args_without_ros[position+2].split(','))
 	else:
-		neighborhood = set(['MobileSensor{}'.format(n) for n in range(4)])
+		# neighborhood = set(['MobileSensor{}'.format(n) for n in range(1,4)])
+		neighborhood = set(['MobileSensor2'])
 	
 	WP = waypoint_planning_node(robot_namespace,pose_type_string,neighborhood_namespaces = neighborhood)
 

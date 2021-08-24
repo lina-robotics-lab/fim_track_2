@@ -27,9 +27,10 @@ def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size
 
         return np.array(wp)
 
-
-    ps_0 = np.vstack([my_loc,neighbor_loc]) # Put the loc of myself at the first row
-
+    if len(neighbor_loc)>0:
+        ps_0 = np.vstack([my_loc,neighbor_loc]) # Put the loc of myself at the first row
+    else:
+        ps_0 = my_loc
     wp = joint_waypoints(ps_0) # wp.shape = (planning_horizon+1,N_sensors,space_dim)
 
     return wp[:,0,:] # Return only the waypoints of myself.
