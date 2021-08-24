@@ -82,7 +82,7 @@ class distributed_seeking(Node):
 		Timer initialization
 		"""
 
-		self.est_sleep_time = 1
+		self.est_sleep_time = 0.1
 		
 		self.estimation_timer = self.create_timer(self.est_sleep_time,self.est_callback)
 
@@ -93,10 +93,6 @@ class distributed_seeking(Node):
 		self.motion_sleep_time = 0.1
 
 		self.motion_timer = self.create_timer(self.motion_sleep_time,self.motion_callback)
-
-
-
-		# self.timer = self.create_timer(self.sleep_time,self.timer_callback)
 
 
 		""" 
@@ -185,11 +181,12 @@ class distributed_seeking(Node):
 		self.nb_zhats[namespace] = np.array(data.data).flatten()
 
 	def consensus_weights(self,y,p):
-		assert(len(y)==len(p))
-		# Temporary hard-coded equally consensus weights. Making sure the consensus weights sum to one.
-		N_neighbor = len(y)
-		return np.ones(N_neighbor)/N_neighbor
-	
+		# assert(len(y)==len(p))
+		# # Temporary hard-coded equally consensus weights. Making sure the consensus weights sum to one.
+		# N_neighbor = len(y)
+		# return np.ones(N_neighbor)/N_neighbor
+		return None
+
 	def process_readings(self,readings):
 		return top_n_mean(np.array(readings),4)
 
@@ -236,7 +233,7 @@ class distributed_seeking(Node):
 			reading = sl.get_latest_readings()
 			coef = sl.get_coefs()
 
-			# self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
+			self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
 			if (not loc is None) and \
 				 (not reading is None) and\
 				 	len(coef)==len(COEF_NAMES):
@@ -301,7 +298,9 @@ class distributed_seeking(Node):
 			
 			neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
 
-			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL)	
+			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
+														step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
+														,planning_horizon = 20)	
 
 			# Consensus on the global FIM estimate.
 			newF = self.calc_new_F()
@@ -309,6 +308,7 @@ class distributed_seeking(Node):
 			self.cons.timer_callback(dx=dF) # Publish dF to the network.
 			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
 			self.F = newF
+		# self.get_logger().info("Current Waypoints:{}".format(self.waypoints))
 
 	def motion_callback(self):
 		"""
@@ -329,10 +329,15 @@ class distributed_seeking(Node):
 				loc = self.get_my_loc()
 				yaw = self.get_my_yaw()
 				# self.get_logger().info('loc:{} yaw:{}'.format(loc,yaw))
+
+				if len(self.waypoints)==0:
+					self.get_logger().info("Running out of waypoints.")
+
 				if (not loc is None) and (not yaw is None) and len(self.waypoints)>0:
 					curr_x = np.array([loc[0],loc[1],yaw])		
 					self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
-				
+					self.get_logger().info("Waypoints:{}".format(self.waypoints))
+
 				if len(self.control_actions)>0:
 
 					# Pop and publish the left-most control action.
@@ -348,9 +353,9 @@ class distributed_seeking(Node):
 					self.omega = omega
 
 					self.vel_pub.publish(vel_msg)
+					self.get_logger().info('{}'.format(vel_msg))
 				else:
 					self.vel_pub.publish(stop_twist())
-					self.get_logger().info("Running out of control actions.")
 
 					# Update current v and omega
 					self.v = 0.0
@@ -394,8 +399,9 @@ def main(args=sys.argv):
 		# neighborhood = set(['MobileSensor2'])
 	
 	
-	qhat_0 = (np.random.rand(2))*2
-	estimator = ConsensusEKF(qhat_0)
+	qhat_0 = (np.random.rand(2)-0.5+np.array([0.5,-1]))*2
+	# estimator = ConsensusEKF(qhat_0)
+	estimator = ConsensusEKF(qhat_0,C_gain=0.1)
 
 	de = distributed_seeking(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
 	

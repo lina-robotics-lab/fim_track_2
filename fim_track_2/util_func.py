@@ -26,9 +26,20 @@ def joint_meas_func(C1s,C0s,ks,bs,x,ps):
     return single_meas_func(C1,C0,k,b,dists) 
 
 def dhdr(r,C1s,C0s,ks,bs):
-    return ks*bs*(r-C1s)**(bs-1)
+    eps = 1e-6  
+    # b is typically negative. We need to ensure raising a positive value to power b.
+    diff = r-C1s
+    diff[diff<=0]=eps
+
+    return ks*bs*(diff)**(bs-1)
+
 def d2hdr2(r,C1s,C0s,ks,bs):
-    return dhdr(r,C1s,C0s,ks,bs)*(bs-1)/(r-C1s)
+    eps = 1e-6 
+    # b is typically negative. We need to ensure raising a positive value to power b.
+    diff = r-C1s
+    diff[diff==0]=eps
+
+    return dhdr(r,C1s,C0s,ks,bs)*(bs-1)/diff
 
 def analytic_dhdz(x,ps,C1s,C0s,ks,bs):
 

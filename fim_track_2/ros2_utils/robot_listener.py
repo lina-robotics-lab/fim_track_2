@@ -35,11 +35,12 @@ class robot_listener:
 		controller_node.create_subscription(Float32MultiArray,self.light_topic, self.light_callback_,qos)
 		
 		# Get coef services.
-		self.coef_client = controller_node.create_client(GetParameters, '/{}/coef/get_parameters'.format(robot_namespace))
-		# while not self.coef_client.wait_for_service(timeout_sec=1.0):
-		#   controller_node.get_logger().info('{} not available, waiting again...'.format(self.coef_client.srv_name))
 		
 		if len(coef_names)>0:
+			self.coef_client = controller_node.create_client(GetParameters, '/{}/coef/get_parameters'.format(robot_namespace))
+			while not self.coef_client.wait_for_service(timeout_sec=1.0):
+			  controller_node.get_logger().info('{} not available, waiting again...'.format(self.coef_client.srv_name))
+			
 			req = GetParameters.Request()
 			req.names = coef_names
 
