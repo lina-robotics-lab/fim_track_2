@@ -113,14 +113,12 @@ class motion_control_node(Node):
 				
 				free_space = RegionsIntersection([CircleExterior(origin,radius) for (origin,radius) in self.obstacles])
 
-
-				if len(self.rl.robot_loc_stack)>0 and len(self.waypoints)>0:
-					loc=self.rl.robot_loc_stack[-1]
-					yaw=self.rl.robot_yaw_stack[-1]
-
+				loc = self.rl.get_latest_loc()
+				yaw = self.rl.get_latest_yaw()
+				if (not loc is None) and (not yaw is None) and len(self.waypoints)>0:
 					curr_x = np.array([loc[0],loc[1],yaw])		
-
 					self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
+				
 				if len(self.control_actions)>0:
 
 					# Pop and publish the left-most control action.

@@ -57,8 +57,8 @@ class distributed_estimation_node(Node):
 
 		self.nb_zhats = {namespace:[] for namespace in neighborhood_namespaces}
 
-		self.z_hat_pub = self.create_publisher(Float32MultiArray,'/{}/z_hat'.format(robot_namespace),qos)
-		self.q_hat_pub = self.create_publisher(Float32MultiArray,'/{}/q_hat'.format(robot_namespace),qos)
+		self.z_hat_pub = self.create_publisher(Float32MultiArray,'z_hat',qos)
+		self.q_hat_pub = self.create_publisher(Float32MultiArray,'q_hat',qos)
 
 
 		sleep_time = 0.5
@@ -115,45 +115,48 @@ class distributed_estimation_node(Node):
 		zh = self.estimator.get_z()
 
 		for name,sl in self.sensor_listeners.items():
-			if len(sl.robot_loc_stack)>0 and \
-				 len(sl.light_reading_stack)>0 and\
-				 	len(sl.coefs)==len(COEF_NAMES):
-					p.append(sl.get_latest_loc())
-					print('Yaw of {}:{}'.format(name,sl.get_latest_yaw()))
-					y.append(self.process_readings(sl.get_latest_readings()))
+			# self.get_logger().info('scalar y:{}.'.format(self.process_readings(sl.get_latest_readings())))
+			# print(sl.coef_future.done(),sl.get_coefs())	
+			loc = sl.get_latest_loc()
+			reading = sl.get_latest_readings()
+			coef = sl.get_coefs()
+			if (not loc is None) and \
+				 (not reading is None) and\
+				 	len(coef)==len(COEF_NAMES):
+					p.append(loc)
+					y.append(self.process_readings(reading))
 					# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
-					# self.get_logger().info('scalar y:{}. y:{}'.format(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings()))
-	
+				
 					if len(self.nb_zhats[name])>0:
 						zhat.append(self.nb_zhats[name])
 					else:
 						zhat.append(zh)
 
-					coefs.append(sl.coefs)
+					coefs.append(coef)
 
 		zhat = np.array(zhat)
 
 		# self.get_logger().info('zhat:{}. zh:{}'.format(zhat,zh))
-		if len(p)>0 and len(y)>0 and len(zhat)>0:
-			# print(y)
-			try:
+		# print(y)
+		try:
+			if len(p)>0 and len(y)>0 and len(zhat)>0:
 				self.estimator.update(self.neighbor_h(coefs),self.neighbor_dhdz(coefs),y,p,zhat\
 									,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
 
 
-				# Publish z_hat and q_hat
-				z_out = Float32MultiArray()
-				z_out.data = list(zh)
-				self.z_hat_pub.publish(z_out)
+			# Publish z_hat and q_hat
+			z_out = Float32MultiArray()
+			z_out.data = list(zh)
+			self.z_hat_pub.publish(z_out)
 
-				qh = self.estimator.get_q()
-				q_out = Float32MultiArray()
-				q_out.data = list(qh)
-				self.q_hat_pub.publish(q_out)
-				self.get_logger().info('qhat:{}'.format(qh))
-			except ValueError as err:
-				print("Not updating due to ValueError")
-				traceback.print_exc()
+			qh = self.estimator.get_q()
+			q_out = Float32MultiArray()
+			q_out.data = list(qh)
+			self.q_hat_pub.publish(q_out)
+			self.get_logger().info('qhat:{}'.format(qh))
+		except ValueError as err:
+			print("Not updating due to ValueError")
+			traceback.print_exc()
 
 
 def main(args=sys.argv):
@@ -179,6 +182,8 @@ def main(args=sys.argv):
 		neighborhood = set(args_without_ros[position+2].split(','))
 	else:
 		neighborhood = set(['MobileSensor{}'.format(n) for n in range(1,4)])
+		# neighborhood = set(['MobileSensor2'])
+	
 	
 	qhat_0 = (np.random.rand(2))*2
 	estimator = ConsensusEKF(qhat_0)

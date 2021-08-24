@@ -2,12 +2,14 @@ from functools import partial
 
 import rclpy
 from rclpy.qos import QoSProfile
+from rcl_interfaces.srv import GetParameters
 
 from std_msgs.msg import Float32MultiArray,Float32
 
 from ros2_utils.pose import get_pose_type_and_topic,toxy,toyaw
 
 from collections import deque
+
 
 class robot_listener:
 	''' Robot location and light_reading listener+data container.'''
@@ -27,8 +29,8 @@ class robot_listener:
 		self.robot_pose=None
 		self.light_readings=None
 
-		self.robot_loc_stack=deque(maxlen=max_record_len)
-		self.robot_yaw_stack=deque(maxlen=max_record_len)
+		# self.robot_loc_stack=deque(maxlen=max_record_len)
+		# self.robot_yaw_stack=deque(maxlen=max_record_len)
 		self.light_reading_stack=deque(maxlen=max_record_len)
 		self.rhats=deque(maxlen=max_record_len)
 
@@ -40,40 +42,46 @@ class robot_listener:
 		controller_node.create_subscription(Float32MultiArray,self.light_topic, self.light_callback_,qos)
 		# controller_node.create_subscription(Float32MultiArray,self.coefs_topic, self.sensor_coef_callback_,qos)
 
+		# Get coef services.
+		self.coef_client = controller_node.create_client(GetParameters, '/{}/coef/get_parameters'.format(robot_namespace))
+		
+		# while not self.coef_client.wait_for_service(timeout_sec=1.0):
+		# 	controller_node.get_logger().info('{} not available, waiting again...'.format(self.coef_client.srv_name))
+			
+		req = GetParameters.Request()
+		req.names = coef_names
+		self.coef_future = self.coef_client.call_async(req)
+		self.coef_names = coef_names
 		self.coefs = {}
-		for coef_name in coef_names:
-			# print('Creating Coef subscripton',"/{}/{}".format(robot_namespace,coef_name))
-			controller_node.create_subscription(Float32,"/{}/{}".format(robot_namespace,coef_name),partial(self.sensor_coef_callback_,coef_name=coef_name),qos)
 
 	def get_latest_loc(self):
-		if len(self.robot_loc_stack)>0:
-			return self.robot_loc_stack[-1]
+		if not self.robot_pose is None:
+			return toxy(self.robot_pose)
 		else:
 			return None
 
 	def get_latest_yaw(self):
-		if len(self.robot_loc_stack)>0:
-			return self.robot_yaw_stack[-1]
+		if not self.robot_pose is None:
+			return toyaw(self.robot_pose)
 		else:
 			return None
 
 	def get_latest_readings(self):
-		if len(self.light_reading_stack)>0:
-			return self.light_reading_stack[-1]
-		else:
-			return None
+		return self.light_readings
 
+	def get_coefs(self):
+		if self.coef_future.done():
+			vals = [r.double_value for r in self.coef_future.result().values]
+			self.coefs = {name:val for name,val in zip(self.coef_names,vals)}
 
-	def sensor_coef_callback_(self,data,coef_name):
-		coef=data.data
-		self.coefs[coef_name] = coef
+		return self.coefs
 
 	def robot_pose_callback_(self,data):
 		self.robot_pose=data
-		self.robot_loc_stack.append(toxy(self.robot_pose))
-		self.robot_yaw_stack.append(toyaw(self.robot_pose))
+		# self.robot_loc_stack.append(toxy(self.robot_pose))
+		# self.robot_yaw_stack.append(toyaw(self.robot_pose))
 
 	def light_callback_(self,data):
 		self.light_readings=data.data
-		self.light_reading_stack.append(self.light_readings)
+		# self.light_reading_stack.append(self.light_readings)
 
