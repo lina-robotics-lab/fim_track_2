@@ -20,7 +20,7 @@ def spawn_object_exec(name,filepath,x,y,Yaw):
 
 def generate_launch_description():
 
-    source_names = ["source_{}".format(i) for i in range(1)]
+    source_names = ["Source{}".format(i) for i in range(1)]
     # Initial position and orientation of moving sources
     # t_x =[6]
     # t_y = [6]
@@ -28,7 +28,7 @@ def generate_launch_description():
     t_y = [0]
     t_Yaw = [0]
 
-    sensor_names = ['mobile_sensor_{}'.format(i) for i in range(4)]
+    sensor_names = ['MobileSensor{}'.format(i) for i in range(4)]
 
     # Initial position and orientation of sensors
     x = [1,-1,0.5,-2.]
@@ -64,11 +64,15 @@ def generate_launch_description():
     # Append the sensor spawning commands to the execution list.
     for i,name in enumerate(sensor_names):
         execs.append(spawn_object_exec(name,mobile_sensor_path,x[i],y[i],Yaw[i]))
-    
+
+      
     # execs = []
     execs.append(Node(package = 'fim_track_2',
                 executable = 'virtual_sensor',
                 arguments = ['Odom',','.join(sensor_names),','.join(source_names)]
                 ))
+    execs.extend([Node(package='fim_track_2',executable='virtual_coef',arguments=[name]) for name in sensor_names])
+
+  
 
     return LaunchDescription(execs)

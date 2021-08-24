@@ -20,7 +20,6 @@ from ros2_utils.robot_listener import robot_listener
 from ros2_utils.pose import prompt_pose_type_string
 from ros2_utils.misc import get_sensor_names
 
-from estimation.ConsensusEKF import ConsensusEKF 
 from motion_control import WaypointPlanning
 
 from motion_control.WaypointTracking import BURGER_MAX_LIN_VEL

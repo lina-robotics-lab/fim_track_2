@@ -111,6 +111,9 @@ class distributed_estimation_node(Node):
 		zhat = []
 		coefs = []
 
+		"""
+			Estimation
+		"""
 		zh = self.estimator.get_z()
 
 		for name,sl in self.sensor_listeners.items():
@@ -161,6 +164,7 @@ class distributed_estimation_node(Node):
 			traceback.print_exc()
 
 
+		
 def main(args=sys.argv):
 	rclpy.init(args=args)
 	args_without_ros = rclpy.utilities.remove_ros_args(args)

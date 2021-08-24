@@ -92,6 +92,9 @@ class virtual_sensor_node(Node):
 
 		self.get_logger().info('Sensor Init Done '+pose_type_string)
 
+		self.coefs = {'C1':C1,'C0':C0,'k':k,'b':b}
+
+	
 
 	def subscriber_init(self,sensor_namespaces,source_namespaces):
 		self.sensor_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string) for namespace in sensor_namespaces}

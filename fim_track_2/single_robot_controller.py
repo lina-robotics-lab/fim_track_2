@@ -101,8 +101,8 @@ class motion_control_node(Node):
 
 		
 	def timer_callback(self):
-		if self.MOVE:
-		# if True:
+		# if self.MOVE:
+		if True:
 			if self.source_contact_detector.contact():
 				self.vel_pub.publish(stop_twist())
 				self.get_logger().info('Source Contact')
