@@ -2,7 +2,13 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 def single_meas_func(C1,C0,k,b,dist):
-    return k*(dist-C1)**b+C0
+    eps = 1e-6 
+
+    # b is typically negative. We need to ensure raising a positive value to power b.
+    diff = dist-C1
+    diff[diff<=0]=eps
+
+    return k*diff**b+C0
 
 def joint_meas_func(C1s,C0s,ks,bs,x,ps):
 

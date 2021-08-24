@@ -99,16 +99,22 @@ class ConsensusEKF:
         
 #         The Stable version of consensus scheme
             
-            self.z = self.f(self.z) + \
-                     K.dot(y-h(self.z,p)) +\
-                self.C_gain*np.ones((1,N)).dot(z_neighbor-self.z).flatten() # The consensus term.
+            new_z = np.array(self.z)
+            
+            new_z = self.f(new_z) + \
+                     K.dot(y-h(new_z,p)) +\
+                self.C_gain*np.ones((1,N)).dot(z_neighbor-new_z).flatten() # The consensus term.
         else:
             # print('Two pass parallel')
             # print(consensus_weights,z_neighbor)
-            self.z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights) # The consensus term.
-            self.z = self.f(self.z)+K.dot(y-h(self.z,p))    
-                              
-        self.P = A.dot(self.P).dot(A.T)+ Q- K.dot(C.dot(self.P).dot(C.T)+R).dot(K.T)
+            new_z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights)  # The consensus term.
+            new_z =  self.f(new_z)+K.dot(y-h(new_z,p))    
+            
+        if np.any(np.isnan(new_z)):
+            pass
+        else:             
+            self.z = new_z          
+            self.P = A.dot(self.P).dot(A.T)+ Q- K.dot(C.dot(self.P).dot(C.T)+R).dot(K.T)
         
     def update_and_estimate_loc(self,h,dhdz,y,p,z_neighbor,z_neighbor_bar=None,consensus_weights=None):
         if not np.any(y == np.inf):

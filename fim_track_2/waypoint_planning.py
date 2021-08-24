@@ -191,8 +191,8 @@ def main(args = sys.argv):
 	if arguments >= position+2:
 		neighborhood = set(args_without_ros[position+2].split(','))
 	else:
-		# neighborhood = set(['MobileSensor{}'.format(n) for n in range(1,4)])
-		neighborhood = set(['MobileSensor2'])
+		neighborhood = set(['MobileSensor{}'.format(n) for n in range(1,4)])
+		# neighborhood = set(['MobileSensor2'])
 	
 	WP = waypoint_planning_node(robot_namespace,pose_type_string,neighborhood_namespaces = neighborhood)
 

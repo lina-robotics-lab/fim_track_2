@@ -25,8 +25,8 @@ class robot_listener:
 		self.pose_type,self.rpose_topic=get_pose_type_and_topic(pose_type_string,robot_namespace)
 		
 		self.light_topic="/{}/sensor_readings".format(robot_namespace)
-		self.robot_pose=None
-		self.light_readings=None
+		self.robot_pose_stack = deque(maxlen=10)
+		self.light_readings_stack= deque(maxlen=10)
 
 		
 		qos = QoSProfile(depth=10)
@@ -37,29 +37,33 @@ class robot_listener:
 		# Get coef services.
 		self.coef_client = controller_node.create_client(GetParameters, '/{}/coef/get_parameters'.format(robot_namespace))
 		# while not self.coef_client.wait_for_service(timeout_sec=1.0):
-		# 	controller_node.get_logger().info('{} not available, waiting again...'.format(self.coef_client.srv_name))
-   		
-		req = GetParameters.Request()
-		req.names = coef_names
+		#   controller_node.get_logger().info('{} not available, waiting again...'.format(self.coef_client.srv_name))
+		
+		if len(coef_names)>0:
+			req = GetParameters.Request()
+			req.names = coef_names
 
-		self.coef_future = self.coef_client.call_async(req)
-		self.coef_names = coef_names
-		self.coefs = {}
+			self.coef_future = self.coef_client.call_async(req)
+			self.coef_names = coef_names
+			self.coefs = {}
 
 	def get_latest_loc(self):
-		if not self.robot_pose is None:
-			return toxy(self.robot_pose)
+		if len(self.robot_pose_stack)>0:
+			return toxy(self.robot_pose_stack[-1])
 		else:
 			return None
 
 	def get_latest_yaw(self):
-		if not self.robot_pose is None:
-			return toyaw(self.robot_pose)
+		if len(self.robot_pose_stack)>0:
+			return toyaw(self.robot_pose_stack[-1])
 		else:
 			return None
 
 	def get_latest_readings(self):
-		return self.light_readings
+		if len(self.light_readings_stack)>0:
+			return self.light_readings_stack[-1]
+		else:
+			return None
 
 	def get_coefs(self):
 		if self.coef_future.done():
@@ -69,7 +73,7 @@ class robot_listener:
 		return self.coefs
 
 	def robot_pose_callback_(self,data):
-		self.robot_pose=data
+		self.robot_pose_stack.append(data)
 
 	def light_callback_(self,data):
-		self.light_readings=data.data
+		self.light_readings_stack.append(data.data)

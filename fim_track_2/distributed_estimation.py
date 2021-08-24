@@ -60,7 +60,7 @@ class distributed_estimation_node(Node):
 		self.q_hat_pub = self.create_publisher(Float32MultiArray,'q_hat',qos)
 
 
-		sleep_time = 0.5
+		sleep_time = 1
 		self.timer = self.create_timer(sleep_time,self.timer_callback)
 
 		self.estimator = estimator
@@ -119,6 +119,8 @@ class distributed_estimation_node(Node):
 			loc = sl.get_latest_loc()
 			reading = sl.get_latest_readings()
 			coef = sl.get_coefs()
+
+			# self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
 			if (not loc is None) and \
 				 (not reading is None) and\
 				 	len(coef)==len(COEF_NAMES):
@@ -135,7 +137,7 @@ class distributed_estimation_node(Node):
 
 		zhat = np.array(zhat)
 
-		# self.get_logger().info('zhat:{}. zh:{}'.format(zhat,zh))
+		# self.get_logger().info('zhat:{}. zh:{} y:{} p:{} coefs:{}'.format(zhat,zh,y,p,coefs))
 		# print(y)
 		try:
 			if len(p)>0 and len(y)>0 and len(zhat)>0:
@@ -190,7 +192,7 @@ def main(args=sys.argv):
 
 	de = distributed_estimation_node(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
 	
-	de.get_logger().info(' '.join(neighborhood))
+	# de.get_logger().info(args_without_ros)
 	try:
 		print('Estimation Node Up')
 		rclpy.spin(de)
