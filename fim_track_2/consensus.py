@@ -9,6 +9,8 @@ from rclpy.node import Node
 
 import numpy as np
 
+from copy import deepcopy
+
 class parallel_two_pass:
 	"""
 		Convention: neighborhood := {strict neighbors} + {myself} 
@@ -16,8 +18,12 @@ class parallel_two_pass:
 	def __init__(self,x0,N_neighborhood):
 		assert(N_neighborhood!=0)
 
-		self.data ={'x':x0,'y':1/N_neighborhood,'z':x0/N_neighborhood}
+		self.data_0 = {'x':x0,'y':1/N_neighborhood,'z':x0/N_neighborhood}
 							# y is the dynamic consensus weight.
+		self.data = deepcopy(self.data_0)
+
+	def reset(self):
+		self.data = deepcopy(self.data_0)
 
 	def get_x(self):
 		return self.data['x']
@@ -50,6 +56,7 @@ class consensus_handler:
 
 		self.controller_node = controller_node
 		self.robot_namespace = robot_namespace
+		self.neighborhood_namespaces = neighborhood_namespaces
 
 		assert(robot_namespace in neighborhood_namespaces)
 
@@ -68,6 +75,9 @@ class consensus_handler:
 
 		self.neighborhood_val = {st:{nb:None for nb in neighborhood_namespaces} for st in self.sub_topics}
 
+	def reset(self):
+		self.pass_alg.reset()
+		self.neighborhood_val = {st:{nb:None for nb in self.neighborhood_namespaces} for st in self.sub_topics}
 
 	def get_consensus_val(self):
 		return self.pass_alg.get_x()	

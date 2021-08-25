@@ -153,6 +153,22 @@ class distributed_seeking(Node):
 		self.v = 0.0
 		self.omega = 0.0
 
+	def est_reset(self):
+		self.estimator.reset()
+		self.q_hat = self.estimator.get_q()
+	
+	def waypoint_reset(self):
+		self.waypoints = []
+		self.FIM = np.ones((2,2))*1e-4
+		self.F = 0
+		self.cons.reset()
+	
+	def motion_reset(self):
+		self.control_actions = deque([])
+		self.v = 0.0
+		self.omega = 0.0
+
+
 	def list_coefs(self,coef_dicts):
 		if len(coef_dicts)==0:
 			# Hard-coded values used in development.	
@@ -232,97 +248,100 @@ class distributed_seeking(Node):
 		""" 
 				Estimation 
 		"""
+		if self.MOVE:
+			p = []
+			y = []
+			zhat = []
+			coefs = []
 
-		p = []
-		y = []
-		zhat = []
-		coefs = []
+			zh = self.estimator.get_z()
 
-		zh = self.estimator.get_z()
+			for name,sl in self.robot_listeners.items():
+				# self.get_logger().info('scalar y:{}.'.format(self.process_readings(sl.get_latest_readings())))
+				# print(name,sl.coef_future.done(),sl.get_coefs())	
+				loc = sl.get_latest_loc()
+				reading = sl.get_latest_readings()
+				coef = sl.get_coefs()
 
-		for name,sl in self.robot_listeners.items():
-			# self.get_logger().info('scalar y:{}.'.format(self.process_readings(sl.get_latest_readings())))
-			# print(name,sl.coef_future.done(),sl.get_coefs())	
-			loc = sl.get_latest_loc()
-			reading = sl.get_latest_readings()
-			coef = sl.get_coefs()
+				self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
+				if (not loc is None) and \
+					 (not reading is None) and\
+					 	len(coef)==len(COEF_NAMES):
+						p.append(loc)
+						y.append(self.process_readings(reading))
+						# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
+					
+						if len(self.nb_zhats[name])>0:
+							zhat.append(self.nb_zhats[name])
+						else:
+							zhat.append(zh)
 
-			self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
-			if (not loc is None) and \
-				 (not reading is None) and\
-				 	len(coef)==len(COEF_NAMES):
-					p.append(loc)
-					y.append(self.process_readings(reading))
-					# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
-				
-					if len(self.nb_zhats[name])>0:
-						zhat.append(self.nb_zhats[name])
-					else:
-						zhat.append(zh)
+						coefs.append(coef)
 
-					coefs.append(coef)
+			zhat = np.array(zhat)
 
-		zhat = np.array(zhat)
+			# self.get_logger().info('zhat:{}. zh:{} y:{} p:{} coefs:{}'.format(zhat,zh,y,p,coefs))
+			try:
+				if len(p)>0 and len(y)>0 and len(zhat)>0:
+					self.estimator.update(self.neighbor_h(coefs),self.neighbor_dhdz(coefs),y,p,zhat\
+										,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
 
-		# self.get_logger().info('zhat:{}. zh:{} y:{} p:{} coefs:{}'.format(zhat,zh,y,p,coefs))
-		try:
-			if len(p)>0 and len(y)>0 and len(zhat)>0:
-				self.estimator.update(self.neighbor_h(coefs),self.neighbor_dhdz(coefs),y,p,zhat\
-									,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
+				# Publish z_hat and q_hat
+				z_out = Float32MultiArray()
+				z_out.data = list(zh)
+				self.z_hat_pub.publish(z_out)
 
-			# Publish z_hat and q_hat
-			z_out = Float32MultiArray()
-			z_out.data = list(zh)
-			self.z_hat_pub.publish(z_out)
+				qh = self.estimator.get_q()
+				q_out = Float32MultiArray()
+				q_out.data = list(qh)
+				self.q_hat_pub.publish(q_out)
+				# self.get_logger().info('qhat:{}'.format(qh))
+				self.q_hat = qh
 
-			qh = self.estimator.get_q()
-			q_out = Float32MultiArray()
-			q_out.data = list(qh)
-			self.q_hat_pub.publish(q_out)
-			# self.get_logger().info('qhat:{}'.format(qh))
-			self.q_hat = qh
-
-		except ValueError as err:
-			self.get_logger().info("Not updating due to ValueError")
-			traceback.print_exc()
-
+			except ValueError as err:
+				self.get_logger().info("Not updating due to ValueError")
+				traceback.print_exc()
+		else:
+			self.est_reset()
 	def waypoint_callback(self):
 		"""
 			Waypoint Planning
 		"""
+		if self.MOVE:
+			my_loc = self.get_my_loc()
+			my_coefs = self.get_my_coefs()
+			# print(my_loc,my_coefs,self.q_hat)
+			if (not my_loc is None) and len(my_coefs)>0 and len(self.q_hat)>0:
 
-		my_loc = self.get_my_loc()
-		my_coefs = self.get_my_coefs()
-		# print(my_loc,my_coefs,self.q_hat)
-		if (not my_loc is None) and len(my_coefs)>0 and len(self.q_hat)>0:
+				# Get neighborhood locations and coefs, in matching order.
+				# Make sure my_coef is on the top.
 
-			# Get neighborhood locations and coefs, in matching order.
-			# Make sure my_coef is on the top.
+				neighbor_loc = []
 
-			neighbor_loc = []
+				neighborhood_coefs =[]
+				for name,nl in self.robot_listeners.items():
+					if not name == self.robot_namespace:
+						loc = nl.get_latest_loc()
+						coef = nl.get_coefs()
+						if (not loc is None) and (len(coef)>0):
+							neighbor_loc.append(loc)
+							neighborhood_coefs.append(coef)
+				
+				neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
 
-			neighborhood_coefs =[]
-			for name,nl in self.robot_listeners.items():
-				if not name == self.robot_namespace:
-					loc = nl.get_latest_loc()
-					coef = nl.get_coefs()
-					if (not loc is None) and (len(coef)>0):
-						neighbor_loc.append(loc)
-						neighborhood_coefs.append(coef)
-			
-			neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
+				self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
+															step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
+															,planning_horizon = 10)	
 
-			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
-														step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
-														,planning_horizon = 10)	
-
-			# Consensus on the global FIM estimate.
-			newF = self.calc_new_F()
-			dF = newF-self.F
-			self.cons.timer_callback(dx=dF) # Publish dF to the network.
-			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
-			self.F = newF
-		# self.get_logger().info("Current Waypoints:{}".format(self.waypoints))
+				# Consensus on the global FIM estimate.
+				newF = self.calc_new_F()
+				dF = newF-self.F
+				self.cons.timer_callback(dx=dF) # Publish dF to the network.
+				self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
+				self.F = newF
+			# self.get_logger().info("Current Waypoints:{}".format(self.waypoints))
+		else:
+			self.waypoint_reset()
 
 	def motion_callback(self):
 		"""
@@ -377,11 +396,8 @@ class distributed_seeking(Node):
 
 		else:
 			self.vel_pub.publish(stop_twist())
-			# Update current v and omega
-			self.v = 0.0
-			self.omega = 0.0
-		# self.MOVE=False # Crucial: reset self.MOVE to False everytime after new velocity is published, so that the robots will stop when remote loses connetion.
-	
+			self.motion_reset()
+		
 		
 	
 

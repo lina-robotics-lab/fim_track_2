@@ -36,6 +36,11 @@ class ConsensusEKF:
         self.Q_mag = Q_mag
         self.C_gain = C_gain # The consensus gain. See the update function.
     
+    def reset(self):
+        self.z = np.hstack([self.q0,self.q0_dot])
+        self._zbar = np.hstack([self.q0,self.q0_dot]) 
+        self.P = np.eye(len(self.z)) # Covariance of [q,qdot]. Initialized to be the identity matrix
+      
     def dfdz(self,z):
         n = len(z)//2
         O =np.zeros((n,n))
