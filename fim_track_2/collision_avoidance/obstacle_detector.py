@@ -13,15 +13,15 @@ from ros2_utils.misc import get_sensor_names,get_source_names
 from collision_avoidance import regions
 
 # The radius of a Turtlebot Burger. Useful in collision avoidance.
-BURGER_RADIUS = 0.150
+BURGER_RADIUS = 0.220
 
 class obstacle_detector:
 	def __init__(self,mc_node):
 		self.obs_names = get_sensor_names(mc_node)
-		self.ol = [robot_listener(mc_node,name,mc_node.pose_type_string) for name in self.obs_names if not name == mc_node.robot_namespace]
+		self.ol = [robot_listener(mc_node,name,mc_node.pose_type_string) for name in self.obs_names if (not name == mc_node.robot_namespace) and (not name=='Source0')]
 
 	def get_obstacles(self):
-		return [(l.get_latest_loc(),2.5*BURGER_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
+		return [(l.get_latest_loc(),3*BURGER_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
 		 
 
 

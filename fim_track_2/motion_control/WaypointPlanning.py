@@ -33,4 +33,4 @@ def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size
         ps_0 = my_loc
     wp = joint_waypoints(ps_0) # wp.shape = (planning_horizon+1,N_sensors,space_dim)
 
-    return wp[:,0,:] # Return only the waypoints of myself.
+    return wp[1:,0,:] # Return only the waypoints of myself.

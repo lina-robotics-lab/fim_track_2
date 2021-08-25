@@ -134,7 +134,10 @@ class distributed_seeking(Node):
 		"""
 		Motion control initializations
 		"""
-
+		
+		self.MOVE = False
+		self.move_sub = self.create_subscription(Bool,'/MISSION_CONTROL/MOVE',self.MOVE_CALLBACK,qos)
+	
 		self.vel_pub = self.create_publisher(Twist, 'cmd_vel', qos)
 
 		self.control_actions = deque([])
@@ -213,6 +216,16 @@ class distributed_seeking(Node):
 		C1,C0,b,k = self.list_coefs(coef_dicts)
 
 		return	joint_F_single(qhat=self.q_hat,ps=self.get_my_loc().reshape(1,-1),C1 = C1, C0 = C0, k=k, b =b)
+
+	def MOVE_CALLBACK(self,data):
+
+		if not self.MOVE == data.data:
+			if data.data:
+				self.get_logger().info('Robot Moving')
+			else:
+				self.get_logger().info('Robot Stopping')
+
+		self.MOVE = data.data
 
 	def est_callback(self):
 		""" 
@@ -300,7 +313,7 @@ class distributed_seeking(Node):
 
 			self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
 														step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
-														,planning_horizon = 20)	
+														,planning_horizon = 10)	
 
 			# Consensus on the global FIM estimate.
 			newF = self.calc_new_F()
@@ -314,8 +327,8 @@ class distributed_seeking(Node):
 		"""
 			Motion Control
 		"""
-		# if self.MOVE:
-		if True:
+		if self.MOVE:
+		# if True:
 			if self.source_contact_detector.contact():
 				self.vel_pub.publish(stop_twist())
 				self.get_logger().info('Source Contact')
@@ -399,7 +412,7 @@ def main(args=sys.argv):
 		# neighborhood = set(['MobileSensor2'])
 	
 	
-	qhat_0 = (np.random.rand(2)-0.5+np.array([0.5,-1]))*2
+	qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([2,-2])
 	# estimator = ConsensusEKF(qhat_0)
 	estimator = ConsensusEKF(qhat_0,C_gain=0.1)
 

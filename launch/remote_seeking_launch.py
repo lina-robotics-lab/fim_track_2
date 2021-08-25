@@ -18,27 +18,6 @@ def generate_launch_description():
 	nb = neighorhoods(G,mobile_sensors)
 
 	execs = []
-
-	# execs.extend([Node(package = 'fim_track_2',
-	# 			namespace = name,
-	# 			executable = 'distributed_estimation',
-	# 			name = name,
-	# 			arguments = [name,'optitrack',','.join(nb[name])]
-	# 			) for name in mobile_sensors ])
-
-	# execs.extend([Node(package = 'fim_track_2',
-	# 			namespace = name,
-	# 			executable = 'waypoint_planning',
-	# 			name = name,
-	# 			arguments = [name,'optitrack',','.join(nb[name])]
-	# 			) for name in mobile_sensors ])
-	
-	# execs.extend([Node(package = 'fim_track_2',
-	# 			namespace = name,
-	# 			executable = 'single_robot_controller',
-	# 			name = name,
-	# 			arguments = [name,'optitrack']
-	# 			) for name in mobile_sensors ])
 	
 	execs.extend([Node(package = 'fim_track_2',
 		executable = 'distributed_seeking',
