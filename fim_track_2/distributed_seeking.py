@@ -9,7 +9,7 @@ from functools import partial
 from collections import deque
 
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray,Bool
 import rclpy
 from rclpy.qos import QoSProfile
 from rclpy.node import Node
@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.abspath(tools_root))
 from ros2_utils.robot_listener import robot_listener
 from ros2_utils.pose import prompt_pose_type_string
 from ros2_utils.misc import get_sensor_names
+
 
 # Estimation dependencies
 from estimation.ConsensusEKF import ConsensusEKF 
@@ -134,7 +135,7 @@ class distributed_seeking(Node):
 		"""
 		Motion control initializations
 		"""
-		
+
 		self.MOVE = False
 		self.move_sub = self.create_subscription(Bool,'/MISSION_CONTROL/MOVE',self.MOVE_CALLBACK,qos)
 	
