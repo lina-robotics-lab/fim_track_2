@@ -26,7 +26,7 @@ class robot_listener:
 		
 		self.light_topic="/{}/sensor_readings".format(robot_namespace)
 		self.robot_pose_stack = deque(maxlen=10)
-		self.light_readings_stack= deque(maxlen=10)
+		self.light_readings_stack = deque(maxlen=10)
 
 		
 		qos = QoSProfile(depth=10)

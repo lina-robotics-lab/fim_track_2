@@ -9,7 +9,7 @@ BURGER_MAX_LIN_VEL = 0.22
 BURGER_MAX_ANG_VEL = 2.84 
 
 
-LIN_VEL_STEP_SIZE = 0.01
+LIN_VEL_STEP_SIZE = 0.05
 ANG_VEL_STEP_SIZE = 0.1
 
 def prompt_pose_type_string():

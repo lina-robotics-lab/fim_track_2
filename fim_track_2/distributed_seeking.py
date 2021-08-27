@@ -136,6 +136,8 @@ class distributed_seeking(Node):
 		self.FIM = np.ones((2,2))*1e-4
 		self.cons = consensus_handler(self,robot_namespace,neighborhood_namespaces,self.FIM,topic_name = 'FIM',qos=qos)
 		
+		self.waypoint_pub = self.create_publisher(Float32MultiArray,'waypoints',qos)
+	
 		"""
 		Motion control initializations
 		"""
@@ -335,11 +337,14 @@ class distributed_seeking(Node):
 
 				self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
 															step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
-															,planning_horizon = 10)	
+															,planning_horizon = 20)	
 				# Note the FIM arg in self.dLdp is set to be self.FIM, which is the consensus est. of global FIM.
 
 				
 			# self.get_logger().info("Current Waypoints:{}".format(self.waypoints))
+				waypoint_out = Float32MultiArray()
+				waypoint_out.data = list(self.waypoints.flatten())
+				self.waypoint_pub.publish(waypoint_out)
 		else:
 			self.waypoint_reset()
 
