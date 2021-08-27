@@ -91,6 +91,10 @@ class distributed_seeking(Node):
 
 		self.waypoint_timer = self.create_timer(self.waypoint_sleep_time,self.waypoint_callback)
 
+		self.FIM_consensus_sleep_time = 0.1
+		
+		self.FIM_consensus_timer = self.create_timer(self.FIM_consensus_sleep_time,self.FIM_consensus_callback)		
+
 		self.motion_sleep_time = 0.1
 
 		self.motion_timer = self.create_timer(self.motion_sleep_time,self.motion_callback)
@@ -332,16 +336,21 @@ class distributed_seeking(Node):
 				self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
 															step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
 															,planning_horizon = 10)	
+				# Note the FIM arg in self.dLdp is set to be self.FIM, which is the consensus est. of global FIM.
 
-				# Consensus on the global FIM estimate.
-				newF = self.calc_new_F()
-				dF = newF-self.F
-				self.cons.timer_callback(dx=dF) # Publish dF to the network.
-				self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
-				self.F = newF
+				
 			# self.get_logger().info("Current Waypoints:{}".format(self.waypoints))
 		else:
 			self.waypoint_reset()
+
+	def FIM_consensus_callback(self):
+		if self.MOVE:
+		# Consensus on the global FIM estimate.
+			newF = self.calc_new_F()
+			dF = newF-self.F
+			self.cons.timer_callback(dx=dF) # Publish dF to the network.
+			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
+			self.F = newF
 
 	def motion_callback(self):
 		"""
