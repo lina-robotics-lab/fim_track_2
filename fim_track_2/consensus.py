@@ -18,7 +18,11 @@ class parallel_two_pass:
 	def __init__(self,x0,N_neighborhood):
 		assert(N_neighborhood!=0)
 
-		self.data_0 = {'x':x0,'y':1/N_neighborhood,'z':x0/N_neighborhood}
+		self.C_gain = 0.5 * 1/N_neighborhood
+
+		x0 = np.array(x0)
+
+		self.data_0 = {'x':x0,'y':1/N_neighborhood,'z':(x0/N_neighborhood).flatten()}
 							# y is the dynamic consensus weight.
 		self.data = deepcopy(self.data_0)
 
@@ -36,18 +40,25 @@ class parallel_two_pass:
 
 	def update_x(self,dx): # dx is some potential time-varying increments to be added to x. The result is a moving average through consensus.
 		assert(self.get_y()!=0)
-		self.data['x'] = self.get_z()/self.get_y() 
-		self.data['x'] += dx.reshape(self.data['x'].shape)
+		new_x = (self.get_z()/self.get_y()).reshape(self.data_0['x'].shape)
+		self.data['x'] = new_x + dx.reshape(self.data_0['x'].shape)
+		self.data['z'] = (self.data['x'] * self.get_y()).flatten()
 		return self.get_x()
 
 	def update_z(self,neighborhood_z):
 		if len(neighborhood_z)>0:
-			self.data['z'] = np.mean(neighborhood_z,axis=0)
+			# self.data['z'] = np.mean(neighborhood_z,axis=0)
+			neighborhood_z = np.array(neighborhood_z).reshape(-1,len(self.data_0['z']))
+			N = len(neighborhood_z)
+			self.data['z'] += self.C_gain*np.sum(neighborhood_z-self.data['z'], axis = 0)
 		return self.get_z()
 
 	def update_y(self,neighborhood_y):
 		if len(neighborhood_y)>0:
-			self.data['y'] = np.mean(neighborhood_y,axis=0)
+			# self.data['y'] = np.mean(neighborhood_y,axis=0)
+			neighborhood_y = np.array(neighborhood_y)
+			N = len(neighborhood_y)
+			self.data['y'] += self.C_gain*np.sum(neighborhood_y-self.data['y'])
 		return self.get_y()
 
 class consensus_handler:
@@ -102,6 +113,8 @@ class consensus_handler:
 
 			out.data = list(np.array(self.pass_alg.data[st],dtype=float).ravel())
 
+			self.controller_node.get_logger().info("{}:{}".format(st,out.data))
+		
 			self.pubs[st].publish(out)
 
 

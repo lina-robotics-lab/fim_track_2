@@ -30,19 +30,23 @@ class Rect2D(Region):
 
     def project_point(self,pt):
         def constrain(input, low, high):
-            if input < low:
-                input = low
-            elif input > high:
-                input = high
-            else:
-                input = input
-            return input
+            # if input < low:
+            #     input = low
+            # elif input > high:
+            #     input = high
+            # else:
+            #     input = input
+            
+            return (input<low)*low + (input>high)*high + (np.logical_and(input>=low,input<=high))*input
 
-        pt = np.array(pt).flatten()
-        assert(len(pt)==2)
+        pt = np.array(pt)
 
-        return np.array([constrain(pt[0],self.xmin,self.xmax),\
-                         constrain(pt[1],self.ymin,self.ymax)])
+        if len(pt.shape)==1:
+            return np.array([constrain(pt[0],self.xmin,self.xmax),\
+                             constrain(pt[1],self.ymin,self.ymax)])
+        else:
+            return np.hstack([constrain(pt[:,0],self.xmin,self.xmax).reshape(-1,1),\
+                constrain(pt[:,1],self.ymin,self.ymax).reshape(-1,1)])
 
 class CircleInterior(Region):
     """CircleInterior"""

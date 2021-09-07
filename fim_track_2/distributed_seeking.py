@@ -42,8 +42,8 @@ from ros2_utils.pose import bounded_change_update, turtlebot_twist, stop_twist
 
 from motion_control.WaypointTracking import LQR_for_motion_mimicry
 
-from collision_avoidance.obstacle_detector import obstacle_detector, source_contact_detector
-from collision_avoidance.regions import RegionsIntersection, CircleExterior
+from collision_avoidance.obstacle_detector import obstacle_detector, source_contact_detector, boundary_detector
+from collision_avoidance.regions import RegionsIntersection
 
 
 COEF_NAMES = ['C1','C0','k','b']
@@ -87,7 +87,7 @@ class distributed_seeking(Node):
 		
 		self.estimation_timer = self.create_timer(self.est_sleep_time,self.est_callback)
 
-		self.waypoint_sleep_time = 1
+		self.waypoint_sleep_time = 0.1
 
 		self.waypoint_timer = self.create_timer(self.waypoint_sleep_time,self.waypoint_callback)
 
@@ -151,9 +151,8 @@ class distributed_seeking(Node):
 
 		# Obstacles are expected to be circular ones, parametrized by (loc,radius)
 		self.obstacle_detector = obstacle_detector(self)
-		self.obstacles = []
-
 		self.source_contact_detector = source_contact_detector(self)
+		self.boundary_detector = boundary_detector(self)
 
 		# current control actions
 		self.v = 0.0
@@ -365,13 +364,12 @@ class distributed_seeking(Node):
 		# if True:
 			if self.source_contact_detector.contact():
 				self.vel_pub.publish(stop_twist())
-				self.get_logger().info('Source Contact')
+				# self.get_logger().info('Source Contact')
 			else:
 
 				# Project waypoints onto obstacle-free spaces.
-				self.obstacles = self.obstacle_detector.get_obstacles()
 				
-				free_space = RegionsIntersection([CircleExterior(origin,radius) for (origin,radius) in self.obstacles])
+				free_space = RegionsIntersection(self.obstacle_detector.get_free_spaces() + self.boundary_detector.get_free_spaces() )
 
 				loc = self.get_my_loc()
 				yaw = self.get_my_yaw()
@@ -383,7 +381,7 @@ class distributed_seeking(Node):
 				if (not loc is None) and (not yaw is None) and len(self.waypoints)>0:
 					curr_x = np.array([loc[0],loc[1],yaw])		
 					self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
-					self.get_logger().info("Waypoints:{}".format(self.waypoints))
+					# self.get_logger().info("Waypoints:{}".format(self.waypoints))
 
 				if len(self.control_actions)>0:
 
