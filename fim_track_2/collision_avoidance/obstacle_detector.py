@@ -29,8 +29,11 @@ class obstacle_detector:
 
 class boundary_detector:
 	def __init__(self,controller_node):
-		self.xlims = (-0.5,3.0)
-		self.ylims = (-4.0,0.5)
+		# self.xlims = (-0.5,3.2)
+		# self.ylims = (-3.5,1.0)
+		self.xlims = (-1e5,1e5)
+		self.ylims = (-1e5,1e5)
+		
 		# Get boundary services.
 		self.param_names = ['xlims','ylims']
 		self.param_service = '/MISSION_CONTROL/boundary/get_parameters'

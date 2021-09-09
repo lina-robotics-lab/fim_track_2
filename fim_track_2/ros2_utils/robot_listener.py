@@ -67,7 +67,7 @@ class robot_listener:
 			return None
 
 	def get_coefs(self):
-		if self.coef_future.done():
+		if len(self.coefs)==0 and self.coef_future.done():
 			vals = [r.double_value for r in self.coef_future.result().values]
 			self.coefs = {name:val for name,val in zip(self.coef_names,vals)}
 

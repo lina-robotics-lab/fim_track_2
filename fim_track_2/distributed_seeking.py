@@ -87,7 +87,7 @@ class distributed_seeking(Node):
 		
 		self.estimation_timer = self.create_timer(self.est_sleep_time,self.est_callback)
 
-		self.waypoint_sleep_time = 0.1
+		self.waypoint_sleep_time = 1
 
 		self.waypoint_timer = self.create_timer(self.waypoint_sleep_time,self.waypoint_callback)
 
@@ -301,7 +301,7 @@ class distributed_seeking(Node):
 				q_out.data = list(qh)
 				self.q_hat_pub.publish(q_out)
 				# self.get_logger().info('qhat:{}'.format(qh))
-				self.q_hat = qh
+				self.q_hat = qh 
 
 			except ValueError as err:
 				self.get_logger().info("Not updating due to ValueError")
@@ -313,37 +313,45 @@ class distributed_seeking(Node):
 			Waypoint Planning
 		"""
 		if self.MOVE:
-			my_loc = self.get_my_loc()
-			my_coefs = self.get_my_coefs()
-			# print(my_loc,my_coefs,self.q_hat)
-			if (not my_loc is None) and len(my_coefs)>0 and len(self.q_hat)>0:
+			if self.source_contact_detector.contact():
+				self.waypoints = []
+			else:
+				my_loc = self.get_my_loc()
+				my_coefs = self.get_my_coefs()
+				# print(my_loc,my_coefs,self.q_hat)
+				if (not my_loc is None) and len(my_coefs)>0 and len(self.q_hat)>0:
 
-				# Get neighborhood locations and coefs, in matching order.
-				# Make sure my_coef is on the top.
+					# Get neighborhood locations and coefs, in matching order.
+					# Make sure my_coef is on the top.
 
-				neighbor_loc = []
+					neighbor_loc = []
 
-				neighborhood_coefs =[]
-				for name,nl in self.robot_listeners.items():
-					if not name == self.robot_namespace:
-						loc = nl.get_latest_loc()
-						coef = nl.get_coefs()
-						if (not loc is None) and (len(coef)>0):
-							neighbor_loc.append(loc)
-							neighborhood_coefs.append(coef)
-				
-				neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
+					neighborhood_coefs =[]
+					for name,nl in self.robot_listeners.items():
+						if not name == self.robot_namespace:
+							loc = nl.get_latest_loc()
+							coef = nl.get_coefs()
+							if (not loc is None) and (len(coef)>0):
+								neighbor_loc.append(loc)
+								neighborhood_coefs.append(coef)
+					
+					neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
 
-				self.waypoints = WaypointPlanning.waypoints(self.q_hat,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
-															step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
-															,planning_horizon = 20)	
-				# Note the FIM arg in self.dLdp is set to be self.FIM, which is the consensus est. of global FIM.
+					qhat_proj = RegionsIntersection(self.boundary_detector.get_free_spaces()).project_point(self.q_hat)
+
+					# qhat_proj = self.q_hat
+
+					free_space = RegionsIntersection(self.obstacle_detector.get_free_spaces() + self.boundary_detector.get_free_spaces() )
+
+					self.waypoints = WaypointPlanning.waypoints(qhat_proj,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
+																step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
+																,planning_horizon = 20\
+																,free_space=free_space)	
+					# Note the FIM arg in self.dLdp is set to be self.FIM, which is the consensus est. of global FIM.
 
 				
 			# self.get_logger().info("Current Waypoints:{}".format(self.waypoints))
-				waypoint_out = Float32MultiArray()
-				waypoint_out.data = list(self.waypoints.flatten())
-				self.waypoint_pub.publish(waypoint_out)
+				
 		else:
 			self.waypoint_reset()
 
@@ -380,8 +388,13 @@ class distributed_seeking(Node):
 
 				if (not loc is None) and (not yaw is None) and len(self.waypoints)>0:
 					curr_x = np.array([loc[0],loc[1],yaw])		
-					self.control_actions = deque(get_control_action(free_space.project_point(self.waypoints),curr_x))
+					wp_proj = free_space.project_point(self.waypoints)
+					self.control_actions = deque(get_control_action(wp_proj,curr_x))
+
 					# self.get_logger().info("Waypoints:{}".format(self.waypoints))
+					waypoint_out = Float32MultiArray()
+					waypoint_out.data = list(wp_proj.flatten())
+					self.waypoint_pub.publish(waypoint_out)
 
 				if len(self.control_actions)>0:
 
@@ -398,7 +411,7 @@ class distributed_seeking(Node):
 					self.omega = omega
 
 					self.vel_pub.publish(vel_msg)
-					self.get_logger().info('{}'.format(vel_msg))
+					# self.get_logger().info('{}'.format(vel_msg))
 				else:
 					self.vel_pub.publish(stop_twist())
 

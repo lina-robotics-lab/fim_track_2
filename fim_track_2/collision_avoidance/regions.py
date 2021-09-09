@@ -89,7 +89,7 @@ class CircleExterior(Region):
             return proj
         
         proj = (dist>=self.radius)*pt \
-            + np.logical_and(dist<self.radius, dist!=0)*(((pt-self.origin)/(dist+1e-9) * self.radius) + self.origin)\
+            + np.logical_and(dist<self.radius, dist>0)*(((pt-self.origin)/(dist+1e-9) * self.radius) + self.origin)\
             + (dist==0).reshape(-1,1)*random_proj()
         
         return proj

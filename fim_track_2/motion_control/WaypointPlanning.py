@@ -8,7 +8,11 @@ sys.path.insert(0, os.path.abspath(tools_root))
 
 from WaypointTracking import BURGER_MAX_LIN_VEL
 
-def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size = 1.5*BURGER_MAX_LIN_VEL):
+# The radius of a Turtlebot Burger. Useful in collision avoidance.
+BURGER_RADIUS = 0.220
+
+
+def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size = 1.5*BURGER_MAX_LIN_VEL,free_space=None):
     
     def joint_waypoints(ps_0):
         
@@ -22,6 +26,9 @@ def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size
             dp = dLdp(qhat,ps)
 
             ps -= step_size*dp/np.linalg.norm(dp,axis = 1).reshape(-1,1)
+
+            if not free_space is None: # Do projected GD if free_space region is provided.
+                ps = free_space.project_point(ps)
 
             wp.append(np.array(ps))
 
