@@ -254,58 +254,63 @@ class distributed_seeking(Node):
 				Estimation 
 		"""
 		if self.MOVE:
-			p = []
-			y = []
-			zhat = []
-			coefs = []
 
-			zh = self.estimator.get_z()
+				p = []
+				y = []
+				zhat = []
+				coefs = []
 
-			for name,sl in self.robot_listeners.items():
-				# self.get_logger().info('scalar y:{}.'.format(self.process_readings(sl.get_latest_readings())))
-				# print(name,sl.coef_future.done(),sl.get_coefs())	
-				loc = sl.get_latest_loc()
-				reading = sl.get_latest_readings()
-				coef = sl.get_coefs()
+				zh = self.estimator.get_z()
 
-				self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
-				if (not loc is None) and \
-					 (not reading is None) and\
-					 	len(coef)==len(COEF_NAMES):
-						p.append(loc)
-						y.append(self.process_readings(reading))
-						# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
-					
-						if len(self.nb_zhats[name])>0:
-							zhat.append(self.nb_zhats[name])
-						else:
-							zhat.append(zh)
+				for name,sl in self.robot_listeners.items():
+					# self.get_logger().info('scalar y:{}.'.format(self.process_readings(sl.get_latest_readings())))
+					# print(name,sl.coef_future.done(),sl.get_coefs())	
+					loc = sl.get_latest_loc()
+					reading = sl.get_latest_readings()
+					coef = sl.get_coefs()
 
-						coefs.append(coef)
+					self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
+					if (not loc is None) and \
+						 (not reading is None) and\
+						 	len(coef)==len(COEF_NAMES):
+							p.append(loc)
+							y.append(self.process_readings(reading))
+							# print(self.process_readings(sl.get_latest_readings()),sl.get_latest_readings())
+						
+							if len(self.nb_zhats[name])>0:
+								zhat.append(self.nb_zhats[name])
+							else:
+								zhat.append(zh)
 
-			zhat = np.array(zhat)
+							coefs.append(coef)
 
-			# self.get_logger().info('zhat:{}. zh:{} y:{} p:{} coefs:{}'.format(zhat,zh,y,p,coefs))
-			try:
-				if len(p)>0 and len(y)>0 and len(zhat)>0:
-					self.estimator.update(self.neighbor_h(coefs),self.neighbor_dhdz(coefs),y,p,zhat\
-										,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
+				zhat = np.array(zhat)
 
-				# Publish z_hat and q_hat
-				z_out = Float32MultiArray()
-				z_out.data = list(zh)
-				self.z_hat_pub.publish(z_out)
+				# self.get_logger().info('zhat:{}. zh:{} y:{} p:{} coefs:{}'.format(zhat,zh,y,p,coefs))
+				try:
+					if not self.source_contact_detector.contact(): # Freeze the estimator update after source contact.
+					# if True:
+						if len(p)>0 and len(y)>0 and len(zhat)>0:
+							self.estimator.update(self.neighbor_h(coefs),self.neighbor_dhdz(coefs),y,p,zhat\
+												,z_neighbor_bar=None,consensus_weights=self.consensus_weights(y,p))
 
-				qh = self.estimator.get_q()
-				q_out = Float32MultiArray()
-				q_out.data = list(qh)
-				self.q_hat_pub.publish(q_out)
-				# self.get_logger().info('qhat:{}'.format(qh))
-				self.q_hat = qh 
+						# Publish z_hat and q_hat
+						z_out = Float32MultiArray()
+						z_out.data = list(zh)
+						self.z_hat_pub.publish(z_out)
 
-			except ValueError as err:
-				self.get_logger().info("Not updating due to ValueError")
-				traceback.print_exc()
+						qh = self.estimator.get_q()
+						q_out = Float32MultiArray()
+						q_out.data = list(qh)
+						self.q_hat_pub.publish(q_out)
+						# self.get_logger().info('qhat:{}'.format(qh))
+						self.q_hat = qh 
+					else:
+						self.est_reset()
+
+				except ValueError as err:
+					self.get_logger().info("Not updating due to ValueError")
+					traceback.print_exc()
 		else:
 			self.est_reset()
 	def waypoint_callback(self):
@@ -314,6 +319,7 @@ class distributed_seeking(Node):
 		"""
 		if self.MOVE:
 			if self.source_contact_detector.contact():
+			# if False:
 				self.waypoints = []
 			else:
 				my_loc = self.get_my_loc()
@@ -371,6 +377,7 @@ class distributed_seeking(Node):
 		if self.MOVE:
 		# if True:
 			if self.source_contact_detector.contact():
+			# if False:
 				self.vel_pub.publish(stop_twist())
 				# self.get_logger().info('Source Contact')
 			else:

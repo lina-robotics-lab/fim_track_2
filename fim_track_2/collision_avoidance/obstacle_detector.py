@@ -16,7 +16,7 @@ from ros2_utils.misc import get_sensor_names,get_source_names
 from collision_avoidance import regions
 
 # The radius of a Turtlebot Burger. Useful in collision avoidance.
-BURGER_RADIUS = 0.220
+BURGER_RADIUS = 0.110
 
 class obstacle_detector:
 	def __init__(self,mc_node):
@@ -24,15 +24,15 @@ class obstacle_detector:
 		self.ol = [robot_listener(mc_node,name,mc_node.pose_type_string) for name in self.obs_names if (not name == mc_node.robot_namespace) and (not name=='Source0')]
 
 	def get_free_spaces(self):
-		obs = [(l.get_latest_loc(),3*BURGER_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
+		obs = [(l.get_latest_loc(),8*BURGER_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
 		return [regions.CircleExterior(origin,radius) for (origin,radius) in obs]
 
 class boundary_detector:
 	def __init__(self,controller_node):
-		# self.xlims = (-0.5,3.2)
-		# self.ylims = (-3.5,1.0)
-		self.xlims = (-1e5,1e5)
-		self.ylims = (-1e5,1e5)
+		self.xlims = (-0.5,3.2)
+		self.ylims = (-3.5,1.0)
+		# self.xlims = (-1e5,1e5)
+		# self.ylims = (-1e5,1e5)
 		
 		# Get boundary services.
 		self.param_names = ['xlims','ylims']
@@ -69,4 +69,4 @@ class source_contact_detector:
 			src_loc = np.array(src_loc).reshape(-1,len(sensor_loc))
 			
 			# self.mc_node.get_logger().info(str(src_loc)+','+str(sensor_loc)+str(self.src_names))
-			return np.any(np.linalg.norm(src_loc-sensor_loc)<=2.5*BURGER_RADIUS)
+			return np.any(np.linalg.norm(src_loc-sensor_loc)<= 5*BURGER_RADIUS)

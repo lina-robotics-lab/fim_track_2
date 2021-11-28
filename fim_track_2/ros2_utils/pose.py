@@ -5,8 +5,8 @@ from geometry_msgs.msg import Pose,Twist,PoseStamped
 from turtlesim.msg import Pose as tPose
 from nav_msgs.msg import Odometry
 
-BURGER_MAX_LIN_VEL = 0.22 
-BURGER_MAX_ANG_VEL = 2.84 
+BURGER_MAX_LIN_VEL = 0.22 * 0.8
+BURGER_MAX_ANG_VEL = 2.84 * 0.8
 
 
 LIN_VEL_STEP_SIZE = 0.1
