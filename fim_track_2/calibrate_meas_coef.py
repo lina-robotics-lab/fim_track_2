@@ -101,11 +101,10 @@ def main(args=sys.argv):
 
 		# Save the calibrated coefficients to files.
 		cof = cl.calc_coefs()
-		print('Coefficients:',cof)
 		data = {'C1':cof[0],'C0':cof[1],'k':cof[2],'b':cof[3]}
+		print('Coefficients:',data)
 		with open('coefs.pkl','wb+') as file:
 			pkl.dump(data,file)
-
 
 		cl.destroy_node()
 		print('Coefficient Calibration Node Down')
