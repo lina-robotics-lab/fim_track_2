@@ -112,7 +112,7 @@ class ConsensusEKF:
         else:
             # print('Two pass parallel')
             # print(consensus_weights,z_neighbor)
-            new_z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights)  # The consensus term.
+            # new_z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights)  # The consensus term.
             new_z =  self.f(new_z)+K.dot(y-h(new_z,p))    
             
         if np.any(np.isnan(new_z)):

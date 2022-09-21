@@ -40,7 +40,8 @@ setup(
         'calibrate = fim_track_2.calibrate_meas_coef:main',
         'arm = fim_track_2.MISSION_CONTROL.ARM:main',
         'move = fim_track_2.MISSION_CONTROL.MOVE:main',
-        'log = fim_track_2.remote_data_logger:main'
+        'log = fim_track_2.remote_data_logger:main',
+        'estimate = fim_track_2.distributed_estimation:main'
         ],
     },
 )
