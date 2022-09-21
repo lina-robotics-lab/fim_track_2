@@ -55,7 +55,9 @@ class distributed_estimation(Node):
 		Timer initialization
 		"""
 
-		self.est_sleep_time = 0.1
+		# self.est_sleep_time = 0.1
+
+		self.est_sleep_time = 2
 		
 		self.estimation_timer = self.create_timer(self.est_sleep_time,self.est_callback)
 
@@ -216,8 +218,14 @@ def main(args=sys.argv):
 	
 	
 	# qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([2,-2])
-	qhat_0 = np.array([0,-0.5])
-	estimator = ConsensusEKF(qhat_0)
+	qhat_0 = np.array([-1,-.0])
+	# estimator = ConsensusEKF(qhat_0)
+	estimator = ConsensusEKF(qhat_0,0.1,\
+	       # Dimension about the lab, fixed.
+            x_max = 0.0,
+            x_min = -4.0,
+            y_max = 0.0,
+            y_min = -4.0)
 
 	de = distributed_estimation(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
 	

@@ -13,12 +13,14 @@ class ConsensusEKF:
         
         The estimator assumes a constant-velocity source movement model, with the velocity to be the fundamental uncertainty.
     """
-    def __init__(self,q_0,R_mag=1,Q_mag=1,C_gain = 0.0):
+    def __init__(self,q_0,R_mag=1,Q_mag=1,C_gain = 0.0,x_min=-np.inf,x_max=np.inf,y_min = -np.inf,y_max=np.inf):
         '''
         q_0 should be a vector, the initial guess of source position.
         
         R_mag,Q_mag,C_gain should be scalars.
         '''
+        
+        self.clipping = {'mins':[x_min,y_min],'maxes':[x_max,y_max]}
         
         self.q0 = q_0 # Mean
         self.q0_dot = np.zeros(self.q0.shape) # Velocity Mean
@@ -106,18 +108,25 @@ class ConsensusEKF:
             
             new_z = np.array(self.z)
             
+            # new_z = self.f(new_z) + \
+            #          K.dot(y-h(new_z,p)) +\
+            #     (self.C_gain*np.ones((1,N)).dot(z_neighbor-new_z)).flatten() # The consensus term.
             new_z = self.f(new_z) + \
-                     K.dot(y-h(new_z,p)) +\
-                (self.C_gain*np.ones((1,N)).dot(z_neighbor-new_z)).flatten() # The consensus term.
+                 K.dot(y-h(new_z,p)) 
+            
         else:
             # print('Two pass parallel')
             # print(consensus_weights,z_neighbor)
-            # new_z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights)  # The consensus term.
+
+            new_z = consensus_weights.dot(z_neighbor)/np.sum(consensus_weights)  # The consensus term.
             new_z =  self.f(new_z)+K.dot(y-h(new_z,p))    
             
         if np.any(np.isnan(new_z)):
             pass
         else:             
+
+            new_z[:2] = np.clip(new_z[0],self.clipping['mins'],self.clipping['maxes']) # The clipping prevents the EKF estimate to go crazy.
+
             self.z = new_z          
             self.P = A.dot(self.P).dot(A.T)+ Q- K.dot(C.dot(self.P).dot(C.T)+R).dot(K.T)
         
