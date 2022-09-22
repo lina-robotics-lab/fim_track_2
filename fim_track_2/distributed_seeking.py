@@ -83,7 +83,9 @@ class distributed_seeking(Node):
 		Timer initialization
 		"""
 
-		self.est_sleep_time = 0.1
+		# self.est_sleep_time = 0.1
+
+		self.est_sleep_time = 2
 		
 		self.estimation_timer = self.create_timer(self.est_sleep_time,self.est_callback)
 
@@ -253,8 +255,8 @@ class distributed_seeking(Node):
 		""" 
 				Estimation 
 		"""
-		if self.MOVE:
-
+		# if self.MOVE:
+		if True:
 				p = []
 				y = []
 				zhat = []
@@ -269,7 +271,7 @@ class distributed_seeking(Node):
 					reading = sl.get_latest_readings()
 					coef = sl.get_coefs()
 
-					self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
+					# self.get_logger().info('name:{} loc:{} reading:{} coef:{}'.format(name,loc, reading,coef))
 					if (not loc is None) and \
 						 (not reading is None) and\
 						 	len(coef)==len(COEF_NAMES):
@@ -303,7 +305,7 @@ class distributed_seeking(Node):
 						q_out = Float32MultiArray()
 						q_out.data = list(qh)
 						self.q_hat_pub.publish(q_out)
-						# self.get_logger().info('qhat:{}'.format(qh))
+						self.get_logger().info('qhat:{}'.format(qh))
 						self.q_hat = qh 
 					else:
 						self.est_reset()
@@ -317,7 +319,8 @@ class distributed_seeking(Node):
 		"""
 			Waypoint Planning
 		"""
-		if self.MOVE:
+		# if self.MOVE:
+		if True:
 			if self.source_contact_detector.contact():
 			# if False:
 				self.waypoints = []
@@ -362,20 +365,22 @@ class distributed_seeking(Node):
 			self.waypoint_reset()
 
 	def FIM_consensus_callback(self):
-		if self.MOVE:
+		# if self.MOVE:
+		if True:
 		# Consensus on the global FIM estimate.
-			newF = self.calc_new_F()
-			dF = newF-self.F
-			self.cons.timer_callback(dx=dF) # Publish dF to the network.
-			self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
-			self.F = newF
+			if (not self.get_my_loc() is None):
+				newF = self.calc_new_F()
+				dF = newF-self.F
+				self.cons.timer_callback(dx=dF) # Publish dF to the network.
+				self.FIM = self.cons.get_consensus_val().reshape(self.FIM.shape)
+				self.F = newF
 
 	def motion_callback(self):
 		"""
 			Motion Control
 		"""
-		if self.MOVE:
-		# if True:
+		# if self.MOVE:
+		if True:
 			if self.source_contact_detector.contact():
 			# if False:
 				self.vel_pub.publish(stop_twist())
@@ -461,9 +466,18 @@ def main(args=sys.argv):
 		# neighborhood = set(['MobileSensor2'])
 	
 	
-	qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([2,-2])
+	# qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([2,-2])
+	qhat_0 = np.array([-1,-0.0])
+
 	# estimator = ConsensusEKF(qhat_0)
-	estimator = ConsensusEKF(qhat_0,C_gain=0.1)
+	# estimator = ConsensusEKF(qhat_0,C_gain=0.1)
+	
+	estimator = ConsensusEKF(qhat_0,0.1,\
+		       # Dimensions about the lab, fixed.
+	            x_max = 0.0,
+	            x_min = -4.0,
+	            y_max = 0.0,
+	            y_min = -4.0)
 
 	de = distributed_seeking(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
 	

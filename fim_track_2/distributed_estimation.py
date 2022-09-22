@@ -221,7 +221,7 @@ def main(args=sys.argv):
 	qhat_0 = np.array([-1,-.0])
 	# estimator = ConsensusEKF(qhat_0)
 	estimator = ConsensusEKF(qhat_0,0.1,\
-	       # Dimension about the lab, fixed.
+	       # Dimensions about the lab, fixed.
             x_max = 0.0,
             x_min = -4.0,
             y_max = 0.0,

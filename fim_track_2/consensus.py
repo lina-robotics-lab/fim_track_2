@@ -113,7 +113,7 @@ class consensus_handler:
 
 			out.data = list(np.array(self.pass_alg.data[st],dtype=float).ravel())
 
-			self.controller_node.get_logger().info("{}:{}".format(st,out.data))
+			# self.controller_node.get_logger().info("{}:{}".format(st,out.data))
 		
 			self.pubs[st].publish(out)
 

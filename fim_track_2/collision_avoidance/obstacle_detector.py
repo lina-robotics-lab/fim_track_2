@@ -29,22 +29,22 @@ class obstacle_detector:
 
 class boundary_detector:
 	def __init__(self,controller_node):
-		self.xlims = (-0.5,3.2)
-		self.ylims = (-3.5,1.0)
+		self.xlims = (-4,0)
+		self.ylims = (-4,0)
 		# self.xlims = (-1e5,1e5)
 		# self.ylims = (-1e5,1e5)
 		
-		# Get boundary services.
-		self.param_names = ['xlims','ylims']
-		self.param_service = '/MISSION_CONTROL/boundary/get_parameters'
+		# # Get boundary services.
+		# self.param_names = ['xlims','ylims']
+		# self.param_service = '/MISSION_CONTROL/boundary/get_parameters'
 
-		self.boundary_client = param_service_client(controller_node,self.param_names,self.param_service)
+		# self.boundary_client = param_service_client(controller_node,self.param_names,self.param_service)
 
 
 	def get_free_spaces(self):
-		result = self.boundary_client.get_params()
-		if len(result)>0:
-				[self.xlims,self.ylims] = result
+		# result = self.boundary_client.get_params()
+		# if len(result)>0:
+		# 		[self.xlims,self.ylims] = result
 
 		return [regions.Rect2D(self.xlims,self.ylims)]
 
