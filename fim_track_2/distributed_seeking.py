@@ -62,7 +62,7 @@ def get_control_action(waypoints,curr_x):
 	return uhat
 
 class distributed_seeking(Node):
-	def __init__(self,robot_namespace,pose_type_string,estimator,neighborhood_namespaces=None):
+	def __init__(self,robot_namespace,pose_type_string,estimator,neighborhood_namespaces=None,xlims=[-np.inf,np.inf],ylims = [-np.inf,np.inf]):
 		super().__init__(node_name = 'distributed_seeking', namespace = robot_namespace)
 		self.pose_type_string = pose_type_string
 		self.robot_namespace = robot_namespace
@@ -154,7 +154,7 @@ class distributed_seeking(Node):
 		# Obstacles are expected to be circular ones, parametrized by (loc,radius)
 		self.obstacle_detector = obstacle_detector(self)
 		self.source_contact_detector = source_contact_detector(self)
-		self.boundary_detector = boundary_detector(self)
+		self.boundary_detector = boundary_detector(self,xlims,ylims)
 
 		# current control actions
 		self.v = 0.0
@@ -471,15 +471,22 @@ def main(args=sys.argv):
 
 	# estimator = ConsensusEKF(qhat_0)
 	# estimator = ConsensusEKF(qhat_0,C_gain=0.1)
+
+	x_max = 3
+	x_min = 0
+	y_max = 4
+	y_min = 0
 	
 	estimator = ConsensusEKF(qhat_0,0.1,\
 		       # Dimensions about the lab, fixed.
-	            x_max = 0.0,
-	            x_min = -4.0,
-	            y_max = 0.0,
-	            y_min = -4.0)
+	            x_max = x_max,
+	            x_min = x_min,
+	            y_max = y_max,
+	            y_min = y_min)
 
-	de = distributed_seeking(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
+	de = distributed_seeking(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood,
+							xlims=[x_min,x_max],
+							ylims=[y_min,y_max])
 	
 	de.get_logger().info(str(args_without_ros))
 	try:

@@ -28,9 +28,9 @@ class obstacle_detector:
 		return [regions.CircleExterior(origin,radius) for (origin,radius) in obs]
 
 class boundary_detector:
-	def __init__(self,controller_node):
-		self.xlims = (-4,0)
-		self.ylims = (-4,0)
+	def __init__(self,xlims,ylims,controller_node):
+		self.xlims = xlims
+		self.ylims = ylims
 		# self.xlims = (-1e5,1e5)
 		# self.ylims = (-1e5,1e5)
 		

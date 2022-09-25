@@ -219,13 +219,18 @@ def main(args=sys.argv):
 	
 	# qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([2,-2])
 	qhat_0 = np.array([-1,-.0])
-	# estimator = ConsensusEKF(qhat_0)
+
+	x_max = 3
+	x_min = 0
+	y_max = 4
+	y_min = 0
+	
 	estimator = ConsensusEKF(qhat_0,0.1,\
-	       # Dimensions about the lab, fixed.
-            x_max = 0.0,
-            x_min = -4.0,
-            y_max = 0.0,
-            y_min = -4.0)
+		       # Dimensions about the lab, fixed.
+	            x_max = x_max,
+	            x_min = x_min,
+	            y_max = y_max,
+	            y_min = y_min)
 
 	de = distributed_estimation(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood)
 	
