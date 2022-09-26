@@ -2,6 +2,7 @@
 import os
 import sys
 import traceback
+import time
 
 import numpy as np
 
@@ -89,7 +90,7 @@ class distributed_seeking(Node):
 		
 		self.estimation_timer = self.create_timer(self.est_sleep_time,self.est_callback)
 
-		self.waypoint_sleep_time = 1
+		self.waypoint_sleep_time = 0.5
 
 		self.waypoint_timer = self.create_timer(self.waypoint_sleep_time,self.waypoint_callback)
 
@@ -97,7 +98,8 @@ class distributed_seeking(Node):
 		
 		self.FIM_consensus_timer = self.create_timer(self.FIM_consensus_sleep_time,self.FIM_consensus_callback)		
 
-		self.motion_sleep_time = 0.1
+		# self.motion_sleep_time = 0.1
+		self.motion_sleep_time = 0.5
 
 		self.motion_timer = self.create_timer(self.motion_sleep_time,self.motion_callback)
 
@@ -485,8 +487,8 @@ def main(args=sys.argv):
 	            y_min = y_min)
 
 	de = distributed_seeking(robot_namespace,pose_type_string,estimator, neighborhood_namespaces = neighborhood,
-							xlims=[x_min,x_max],
-							ylims=[y_min,y_max])
+							xlims=[x_min-1,x_max+1],
+							ylims=[y_min-1,y_max+1])
 	
 	de.get_logger().info(str(args_without_ros))
 	try:
@@ -494,7 +496,9 @@ def main(args=sys.argv):
 		rclpy.spin(de)
 	except KeyboardInterrupt:
 		print("Keyboard Interrupt. Shutting Down...")
-		de.vel_pub.publish(stop_twist())
+		for _ in range(30):# Publish consecutive stop twist for 3 seconds to ensure the robot steps.
+			de.vel_pub.publish(stop_twist())
+			time.sleep(0.1)
 	finally:
 		de.destroy_node()
 		print('Distributed Seeking Node Down')

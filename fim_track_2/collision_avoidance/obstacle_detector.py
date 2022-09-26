@@ -24,11 +24,17 @@ class obstacle_detector:
 		self.ol = [robot_listener(mc_node,name,mc_node.pose_type_string) for name in self.obs_names if (not name == mc_node.robot_namespace) and (not name=='Source0')]
 
 	def get_free_spaces(self):
-		obs = [(l.get_latest_loc(),8*BURGER_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
+		
+		# SAFE_RADIUS = 3*BURGER_RADIUS
+		# SAFE_RADIUS = 5*BURGER_RADIUS
+		SAFE_RADIUS = 6*BURGER_RADIUS
+
+		obs = [(l.get_latest_loc(),SAFE_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
+
 		return [regions.CircleExterior(origin,radius) for (origin,radius) in obs]
 
 class boundary_detector:
-	def __init__(self,xlims,ylims,controller_node):
+	def __init__(self,controller_node,xlims,ylims):
 		self.xlims = xlims
 		self.ylims = ylims
 		# self.xlims = (-1e5,1e5)
