@@ -9,9 +9,14 @@ def neighorhoods(G, mobile_sensors):
 	return {sensor:list(dict(G[sensor]).keys())+[sensor] for sensor in mobile_sensors}
 
 def generate_launch_description():
+	# n_sensors = 3
 	# n_sensors = 4
 	n_sensors = 6
 	mobile_sensors = ['MobileSensor{}'.format(i) for i in range(1,n_sensors+1)]
+	
+	# n_sensors = 6
+	# mobile_sensors = ['MobileSensor{}'.format(i) for i in range(2,n_sensors+1)]
+
 
 	G = nx.circulant_graph(len(mobile_sensors), [0,1])
 

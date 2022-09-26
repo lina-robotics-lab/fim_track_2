@@ -74,8 +74,11 @@ class distributed_seeking(Node):
 		else:
 			self.neighborhood_namespaces = neighborhood_namespaces
 
-		self.robot_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string,COEF_NAMES)\
-								 for namespace in neighborhood_namespaces}
+		# self.robot_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string,COEF_NAMES)\
+		# 						 for namespace in neighborhood_namespaces}
+		self.robot_listeners = {namespace:robot_listener(self,namespace,self.pose_type_string)\
+						 for namespace in neighborhood_namespaces}
+
 
 
 		qos = QoSProfile(depth=10)
@@ -257,8 +260,8 @@ class distributed_seeking(Node):
 		""" 
 				Estimation 
 		"""
-		# if self.MOVE:
-		if True:
+		if self.MOVE:
+		# if True:
 				p = []
 				y = []
 				zhat = []
@@ -321,8 +324,8 @@ class distributed_seeking(Node):
 		"""
 			Waypoint Planning
 		"""
-		# if self.MOVE:
-		if True:
+		if self.MOVE:
+		# if True:
 			if self.source_contact_detector.contact():
 			# if False:
 				self.waypoints = []
@@ -367,8 +370,8 @@ class distributed_seeking(Node):
 			self.waypoint_reset()
 
 	def FIM_consensus_callback(self):
-		# if self.MOVE:
-		if True:
+		if self.MOVE:
+		# if True:
 		# Consensus on the global FIM estimate.
 			if (not self.get_my_loc() is None):
 				newF = self.calc_new_F()
@@ -381,8 +384,8 @@ class distributed_seeking(Node):
 		"""
 			Motion Control
 		"""
-		# if self.MOVE:
-		if True:
+		if self.MOVE:
+		# if True:
 			if self.source_contact_detector.contact():
 			# if False:
 				self.vel_pub.publish(stop_twist())
@@ -469,7 +472,10 @@ def main(args=sys.argv):
 	
 	
 	# qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([2,-2])
-	qhat_0 = np.array([-1,-0.0])
+	# qhat_0 = np.array([-1,-0.0])
+	qhat_0 = np.array([-1,0])
+	
+
 
 	# estimator = ConsensusEKF(qhat_0)
 	# estimator = ConsensusEKF(qhat_0,C_gain=0.1)
@@ -479,7 +485,7 @@ def main(args=sys.argv):
 	y_max = 4
 	y_min = 0
 	
-	estimator = ConsensusEKF(qhat_0,0.1,\
+	estimator = ConsensusEKF(qhat_0,R_mag=10,Q_mag = 10,C_gain=0.1,\
 		       # Dimensions about the lab, fixed.
 	            x_max = x_max,
 	            x_min = x_min,

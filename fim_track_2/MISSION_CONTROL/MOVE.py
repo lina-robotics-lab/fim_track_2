@@ -72,7 +72,10 @@ def main():
 	except KeyboardInterrupt:
 		print("Keyboard Interrupt. Stopping robots...")
 	finally:
-		move.stop()
+		print("Keyboard Interrupt. Shutting Down...")
+		for _ in range(30):# Publish stop twist for 3 seconds to ensure the robot steps.
+			move.stop()
+			time.sleep(0.1)
 		move.destroy_node()
 		rclpy.shutdown()
 

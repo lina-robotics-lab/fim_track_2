@@ -13,7 +13,7 @@ from collections import deque
 
 class robot_listener:
 	''' Robot location and light_reading listener+data container.'''
-	def __init__(self,controller_node,robot_namespace,pose_type_string="",coef_names=[],max_record_len=10):
+	def __init__(self,controller_node,robot_namespace,pose_type_string="",max_record_len=10):
 		"""
 			pose_type_string is one in ["turtlesimPose", "Pose", "Odom", "optitrack"]
 		"""
@@ -25,6 +25,7 @@ class robot_listener:
 		self.pose_type,self.rpose_topic=get_pose_type_and_topic(pose_type_string,robot_namespace)
 		
 		self.light_topic="/{}/sensor_readings".format(robot_namespace)
+		self.coef_topic="/{}/sensor_coefs".format(robot_namespace)
 		self.robot_pose_stack = deque(maxlen=10)
 		self.light_readings_stack = deque(maxlen=10)
 
@@ -33,20 +34,21 @@ class robot_listener:
 
 		controller_node.create_subscription(self.pose_type, self.rpose_topic,self.robot_pose_callback_,qos)
 		controller_node.create_subscription(Float32MultiArray,self.light_topic, self.light_callback_,qos)
+		controller_node.create_subscription(Float32MultiArray,self.coef_topic,self.coef_callback_,qos)
 		
 		# Get coef services.
 		
-		if len(coef_names)>0:
-			self.coef_client = controller_node.create_client(GetParameters, '/{}/coef/get_parameters'.format(robot_namespace))
-			while not self.coef_client.wait_for_service(timeout_sec=1.0):
-			  controller_node.get_logger().info('{} not available, waiting again...'.format(self.coef_client.srv_name))
+		# if len(coef_names)>0:
+		# 	self.coef_client = controller_node.create_client(GetParameters, '/{}/coef/get_parameters'.format(robot_namespace))
+		# 	while not self.coef_client.wait_for_service(timeout_sec=1.0):
+		# 	  controller_node.get_logger().info('{} not available, waiting again...'.format(self.coef_client.srv_name))
 			
-			req = GetParameters.Request()
-			req.names = coef_names
+		# 	req = GetParameters.Request()
+		# 	req.names = coef_names
 
-			self.coef_future = self.coef_client.call_async(req)
-			self.coef_names = coef_names
-			self.coefs = {}
+		# 	self.coef_future = self.coef_client.call_async(req)
+		# 	self.coef_names = coef_names
+		self.coefs = {}
 
 	def get_latest_loc(self):
 		if len(self.robot_pose_stack)>0:
@@ -67,14 +69,18 @@ class robot_listener:
 			return None
 
 	def get_coefs(self):
-		if len(self.coefs)==0 and self.coef_future.done():
-			vals = [r.double_value for r in self.coef_future.result().values]
-			self.coefs = {name:val for name,val in zip(self.coef_names,vals)}
-
 		return self.coefs
+
 
 	def robot_pose_callback_(self,data):
 		self.robot_pose_stack.append(data)
 
 	def light_callback_(self,data):
 		self.light_readings_stack.append(data.data)
+
+	def coef_callback_(self,data):
+		d = data.data
+		self.coefs['k'] = d[0]
+		self.coefs['b'] = d[1]
+		self.coefs['C0'] = d[2]
+		self.coefs['C1'] = d[3] 
