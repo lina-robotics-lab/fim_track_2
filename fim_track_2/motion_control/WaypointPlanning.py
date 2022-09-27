@@ -38,3 +38,27 @@ def waypoints(qhat, my_loc, neighbor_loc, dLdp, planning_horizon = 10, step_size
     wp = joint_waypoints(ps_0) # wp.shape = (planning_horizon+1,N_sensors,space_dim)
 
     return wp[1:,0,:] # Return only the waypoints of myself.
+
+
+def straight_line(qhat, my_loc, planning_horizon = 10, step_size = 1.5*BURGER_MAX_LIN_VEL):
+    
+    # def projected_straight_line(ps_0):
+        
+    p = np.array(my_loc).flatten()
+    
+    wp = [np.array(p)]
+
+    qhat = np.array(qhat).flatten()
+
+
+    # Gradient update
+    for i in range(planning_horizon):
+        
+        p += step_size*(qhat - p)/np.linalg.norm(qhat-p)
+
+        wp.append(np.array(p))
+
+    wp = np.array(wp,dtype = float).reshape(-1,2)
+  
+    # return wp[1:,:] 
+    return wp[1:,:]

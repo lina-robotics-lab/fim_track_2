@@ -25,9 +25,9 @@ class obstacle_detector:
 
 	def get_free_spaces(self):
 		
-		# SAFE_RADIUS = 3*BURGER_RADIUS
+		SAFE_RADIUS = 3*BURGER_RADIUS
 		# SAFE_RADIUS = 5*BURGER_RADIUS
-		SAFE_RADIUS = 6*BURGER_RADIUS
+		# SAFE_RADIUS = 6*BURGER_RADIUS
 
 		obs = [(l.get_latest_loc(),SAFE_RADIUS) for l in self.ol if not l.get_latest_loc() is None]
 
@@ -76,3 +76,17 @@ class source_contact_detector:
 			
 			# self.mc_node.get_logger().info(str(src_loc)+','+str(sensor_loc)+str(self.src_names))
 			return np.any(np.linalg.norm(src_loc-sensor_loc)<= 5*BURGER_RADIUS)
+
+	def get_source_loc(self):
+		if self.contact():
+			src_loc = [l.get_latest_loc() for l in self.sl if not l.get_latest_loc() is None]
+			if len(src_loc)==0:
+				return None
+
+			sensor_loc = self.mc_node.get_my_loc()
+
+			src_loc = np.array(src_loc).reshape(-1,len(sensor_loc))
+			return src_loc
+		else:
+			return None
+

@@ -10,7 +10,7 @@ from functools import partial
 from collections import deque
 
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32MultiArray,Bool
+from std_msgs.msg import Float32MultiArray,Bool,String
 import rclpy
 from rclpy.qos import QoSProfile
 from rclpy.node import Node
@@ -161,9 +161,56 @@ class distributed_seeking(Node):
 		self.source_contact_detector = source_contact_detector(self)
 		self.boundary_detector = boundary_detector(self,xlims,ylims)
 
+
+		# If source is foumd by some robot, SOURCE_LOC will be set to not None.
+		self.check_source_found_sleep_time = 0.1
+
+		self.check_source_found_timer = self.create_timer(self.check_source_found_sleep_time,self.check_source_found_)
+
+		self.SOURCE_LOC_pub = self.create_publisher(Float32MultiArray, '/SOURCE_LOC', qos)
+		self.FIRST_FOUND_pub = self.create_publisher(String, '/FIRST_CONTACT_ROBOT', qos)
+
+		self.SOURCE_LOC_sub = self.create_subscription(Float32MultiArray,'/SOURCE_LOC',self.SOURCE_LOC_callback_,qos)
+		self.FIRST_FOUND_sub = self.create_subscription(String,'/FIRST_CONTACT_ROBOT',self.FIRST_FOUND_callback_,qos)
+
+
+		self.FIRST_CONTACT_ROBOT = None
+		self.SOURCE_LOC = None
+
 		# current control actions
 		self.v = 0.0
 		self.omega = 0.0
+
+	def FIRST_FOUND_callback_(self,data):
+		
+		self.FIRST_CONTACT_ROBOT = data.data
+
+	def SOURCE_LOC_callback_(self,data):
+		
+		self.SOURCE_LOC = data.data
+
+	def check_source_found_(self):
+
+		# Check if this robot has become the FIRST_CONTACT_ROBOT
+		if self.SOURCE_LOC is None and self.FIRST_CONTACT_ROBOT is None:
+			if self.source_contact_detector.contact():
+				self.SOURCE_LOC = self.source_contact_detector.get_source_loc()
+				self.FIRST_CONTACT_ROBOT = self.robot_namespace
+
+
+
+		# The following being true means this robot has found the source and is the first one to do so.
+		# Only the FIRST_CONTACT ROBOT has the right to publish the source location. This is to avoid network jamming.
+		if (not self.SOURCE_LOC is None) and self.FIRST_CONTACT_ROBOT == self.robot_namespace: 
+			
+			out = Float32MultiArray()
+			out.data = list(np.array(self.SOURCE_LOC).ravel().astype(float))
+			self.SOURCE_LOC_pub.publish(out)
+
+			out = String()
+			out.data = self.robot_namespace
+			self.FIRST_FOUND_pub.publish(out)
+
 
 	def est_reset(self):
 		self.estimator.reset()
@@ -332,36 +379,44 @@ class distributed_seeking(Node):
 			else:
 				my_loc = self.get_my_loc()
 				my_coefs = self.get_my_coefs()
+				free_space = RegionsIntersection(self.obstacle_detector.get_free_spaces() + self.boundary_detector.get_free_spaces() )
+
 				# print(my_loc,my_coefs,self.q_hat)
-				if (not my_loc is None) and len(my_coefs)>0 and len(self.q_hat)>0:
 
-					# Get neighborhood locations and coefs, in matching order.
-					# Make sure my_coef is on the top.
+				target_loc = None
+				if (not my_loc is None) and len(my_coefs)>0:
+					if not self.SOURCE_LOC is None:
+						target_loc = self.SOURCE_LOC
+						self.waypoints = WaypointPlanning.straight_line(target_loc,my_loc\
+																	,planning_horizon = 20\
+																	,step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL)	
+			
+					elif len(self.q_hat)>0:
+						target_loc = RegionsIntersection(self.boundary_detector.get_free_spaces()).project_point(self.q_hat)
+						# target_loc = self.q_hat
 
-					neighbor_loc = []
+						# Get neighborhood locations and coefs, in matching order.
+						# Make sure my_coef is on the top.
 
-					neighborhood_coefs =[]
-					for name,nl in self.robot_listeners.items():
-						if not name == self.robot_namespace:
-							loc = nl.get_latest_loc()
-							coef = nl.get_coefs()
-							if (not loc is None) and (len(coef)>0):
-								neighbor_loc.append(loc)
-								neighborhood_coefs.append(coef)
+						neighbor_loc = []
+
+						neighborhood_coefs =[]
+						for name,nl in self.robot_listeners.items():
+							if not name == self.robot_namespace:
+								loc = nl.get_latest_loc()
+								coef = nl.get_coefs()
+								if (not loc is None) and (len(coef)>0):
+									neighbor_loc.append(loc)
+									neighborhood_coefs.append(coef)
+						
+						neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
+
 					
-					neighborhood_coefs = [self.get_my_coefs()]+neighborhood_coefs # Make sure my_coef is on the top.
-
-					qhat_proj = RegionsIntersection(self.boundary_detector.get_free_spaces()).project_point(self.q_hat)
-
-					# qhat_proj = self.q_hat
-
-					free_space = RegionsIntersection(self.obstacle_detector.get_free_spaces() + self.boundary_detector.get_free_spaces() )
-
-					self.waypoints = WaypointPlanning.waypoints(qhat_proj,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
-																step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
-																,planning_horizon = 20\
-																,free_space=free_space)	
-					# Note the FIM arg in self.dLdp is set to be self.FIM, which is the consensus est. of global FIM.
+						self.waypoints = WaypointPlanning.waypoints(target_loc,my_loc,neighbor_loc,lambda qhat,ps: self.dLdp(qhat,ps,FIM=self.FIM,coef_dicts = neighborhood_coefs), \
+																	step_size = self.waypoint_sleep_time * BURGER_MAX_LIN_VEL\
+																		,planning_horizon = 20\
+																		,free_space=free_space)	
+						# Note the FIM arg in self.dLdp is set to be self.FIM, which is the consensus est. of global FIM.
 
 				
 			# self.get_logger().info("Current Waypoints:{}".format(self.waypoints))
