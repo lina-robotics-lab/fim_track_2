@@ -125,7 +125,7 @@ class ConsensusEKF:
             pass
         else:             
 
-            new_z[:2] = np.clip(new_z[0],self.clipping['mins'],self.clipping['maxes']) # The clipping prevents the EKF estimate to go crazy.
+            new_z[:2] = np.clip(new_z[:2],self.clipping['mins'],self.clipping['maxes']) # The clipping prevents the EKF estimate to go crazy.
 
             self.z = new_z          
             self.P = A.dot(self.P).dot(A.T)+ Q- K.dot(C.dot(self.P).dot(C.T)+R).dot(K.T)

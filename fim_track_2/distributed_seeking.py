@@ -526,9 +526,11 @@ def main(args=sys.argv):
 		# neighborhood = set(['MobileSensor2'])
 	
 	
-	# qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([2,-2])
+	qhat_0 = (np.random.rand(2)-0.5)*0.5+np.array([1.5,2])
 	# qhat_0 = np.array([-1,-0.0])
-	qhat_0 = np.array([-1,0])
+	# qhat_0 = np.array([-1,0])
+	# qhat_0 = np.array([4,-1])
+	# qhat_0 = np.array([3,0])
 	
 
 
