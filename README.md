@@ -36,4 +36,4 @@ without the ".py" postfix to "manual_teleop_key" to control individual robots us
 
 ### Special attention when running my_tb3_bringup for the first time on a Turtlebot
 
-The specification file burger.yaml needs to be changed for my_tb3_bringup to work. Specifically, go to folder /param and open burger.yaml, then replace **MobileSensor3** with the hostname of the new robot. Here hostname can be found by typing **hostname** in the Linux console.
+The specification file **burger.yaml** needs to be editted for the **my_tb3_bringup** script to work. Specifically, go to folder _/param_ and open **burger.yaml**, replace **MobileSensor3** with the hostname of the new robot. Here hostname can be found by typing **hostname** in the Linux console.
