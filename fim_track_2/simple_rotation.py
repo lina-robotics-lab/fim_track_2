@@ -20,17 +20,6 @@ sys.path.insert(0, os.path.abspath(tools_root))
 
 # Motion control dependencies
 from ros2_utils.pose import turtlebot_twist, stop_twist
-
-def motion_callback(de):
-	
-
-		[v,omega] = [0,0.5]
-		
-		vel_msg = turtlebot_twist(v,omega)
-
-		vel_pub.publish(vel_msg)
-
-
 		
 def main(args=sys.argv):
 	rclpy.init(args=args)
