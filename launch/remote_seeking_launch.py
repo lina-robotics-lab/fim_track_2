@@ -12,6 +12,8 @@ def generate_launch_description():
 	# n_sensors = 3
 	# n_sensors = 4
 	n_sensors = 6
+	# n_sensors = 5
+	
 	mobile_sensors = ['MobileSensor{}'.format(i) for i in range(1,n_sensors+1)]
 	
 	# n_sensors = 6
