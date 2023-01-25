@@ -8,7 +8,7 @@ This is the ROS2 version of fim_track package. Testing on ROS2 dashing, Gazebo 9
 
 ### First Steps and Example Usage
 
-**Prerequisite: on a Ubuntu 18.04/20.04 system, install ROS2 and Gazebo 9/11(following the instructions on https://emanual.robotis.com/docs/en/platform/turtlebot3/ros2_setup/#pc-setup)**. 
+**Prerequisite: on a Ubuntu 18.04/20.04 system, install ROS2 and Gazebo 9/11(following the instructions on https://emanual.robotis.com/docs/en/platform/turtlebot3/quick-start/#pc-setup)**. 
 
 Assume you have followed all the instructions on Turltebot3 emanual website, your current ROS workspace directory should be **turtlebot3_ws**. 
 
