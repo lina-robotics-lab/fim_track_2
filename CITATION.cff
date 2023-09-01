@@ -1,10 +1,15 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+title: Distributed Information Based Source Seeking
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
 authors:
-- family-names: "Tianpeng"
-  given-names: "Zhang"
-  orcid: "https://orcid.org/0000-0001-8700-8715"
-title: "ROS 2 Package for Distributed Information-based Source Seeking"
-version: 1.0.0
-date-released: 2021-11-28
-url: "https://github.com/lina-robotics-lab/fim_track_2"
+  - given-names: Tianpeng
+    family-names: Zhang
+    email: tzhang@g.harvard.edu
+    affiliation: Harvard University
+    orcid: 'https://orcid.org/0000-0001-8700-8715'
